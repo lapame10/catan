@@ -390,9 +390,14 @@ function escuchar(cod){
     if (!s){ pant('p1'); return; }
 
     /* si la partida ya empezo, todos a la mesa con el MISMO tablero */
-    if (s.fase === 'juego'){
+    if (s.fase === 'juego' || s.fase === 'colocando'){
       pant('p5');
       if (s.hexes) pintaTablero(s.hexes);
+      /* en la colocacion inicial, el modo lo manda el juego, no tu */
+      if (s.fase === 'colocando' && s.turno === yo.id){
+        const quiero = s.colocPaso || 'base';
+        if (modo !== quiero){ modo = quiero; }
+      }
       pintaPartida(s);
       if (!POS.length) calculaPosiciones();
       return;
@@ -573,6 +578,28 @@ function pintaBarra(s){
   }).join('');
   const t = lista.find(j => j.id === s.turno);
   const mio = (s.turno === yo.id);
+
+  /* ===== LA COLOCACION INICIAL ===== */
+  if (s.fase === 'colocando'){
+    const paso = (s.turno === yo.id) ? (s.colocPaso || 'base') : null;
+    const cuantos = (s.colocadoEn || 0), total = (s.orden || []).length * 2;
+    $('turnoTxt').innerHTML = mio
+      ? `COLOCANDO (${cuantos+1}/${total}) — pon tu <b style="color:#f0d899">${paso==='base'?'BASECAMP':'RUTA'}</b>`
+      : `Colocando ${t ? t.nombre : ''}…`;
+    $('bPasar').disabled = true;
+    $('bPasar').textContent = 'COLOCACIÓN INICIAL';
+    $('bDados').disabled = true;
+    $('bDados').textContent = '🎲 EMPIEZA DESPUÉS';
+    ['bCamino','bBase','bHub'].forEach(b => $(b).disabled = true);
+    $('bBase').classList.toggle('on',   mio && paso === 'base');
+    $('bCamino').classList.toggle('on', mio && paso === 'camino');
+    if (mio) $('info').innerHTML = paso === 'base'
+      ? 'Toca el tablero donde quieras poner tu <b>Basecamp</b>. Es gratis.'
+      : 'Ahora toca una arista que salga de tu <b>Basecamp</b>. También gratis.';
+    pintaRecursos(s);
+    return;
+  }
+
   $('turnoTxt').textContent = t ? (mio ? 'TU TURNO' : 'Turno de ' + t.nombre) : '';
   $('bPasar').disabled = !mio;
   $('bPasar').textContent = mio ? 'PASAR EL TURNO' : 'ESPERANDO…';
@@ -675,6 +702,66 @@ $('bHub').onclick    = () => ponModo('hub');
 async function coloca(tipo, clave, hexIdx){
   const s = await leerSala(salaCod);
   if (!s || s.turno !== yo.id) return;
+
+  /* ===== SI ESTAMOS COLOCANDO, LAS PIEZAS SON GRATIS y hay que ir en orden ===== */
+  if (s.fase === 'colocando'){
+    if (s.colocPaso && s.colocPaso !== tipo){
+      aviso('Primero ' + NOMBRE[s.colocPaso].toLowerCase(),
+            `Toca poner <b>${NOMBRE[s.colocPaso]}</b> antes.`); return;
+    }
+    const piezas = JSON.parse(JSON.stringify(s.piezas || {}));
+    piezas[yo.id] = piezas[yo.id] || { base:[], hub:[], camino:[] };
+    const lista = tipo === 'camino' ? piezas[yo.id].camino : piezas[yo.id][tipo];
+    if (lista.some(p => p.k === clave)){ aviso('Ya hay algo ahí',''); return; }
+
+    if (tipo === 'base'){
+      const hayAlgo = Object.values(piezas).some(p =>
+        [...(p.base||[]), ...(p.hub||[])].some(x => x.k === clave));
+      if (hayAlgo){ aviso('Ahí ya hay una pieza',''); return; }
+      /* en la ida no hace falta tocar ruta; en la vuelta, el Basecamp ya no tiene que tocar nada */
+      piezas[yo.id].base.push({ k: clave, hex: hexIdx });
+    } else {
+      /* la Ruta tiene que salir de tu Basecamp recien puesto */
+      const miBase = piezas[yo.id].base[piezas[yo.id].base.length-1];
+      const toca = miBase && clave.split('|').some(v => v.split('#')[0] === miBase.k);
+      if (!toca){ aviso('Pega la Ruta a tu Basecamp','La Ruta tiene que salir del Basecamp que acabas de poner.'); return; }
+      piezas[yo.id].camino.push({ k: clave, hex: hexIdx, v: clave.split('|') });
+    }
+
+    /* avanza el orden de colocacion */
+    const orden = s.orden || [];
+    const n = (s.colocadoEn || 0) + 1;
+    const vuelta = (n >= orden.length);          /* ya pasamos todos una vez */
+    const upd = { piezas };
+    if (tipo === 'base' && vuelta){
+      /* el SEGUNDO Basecamp YA COBRA: es la produccion inicial de Catan */
+      const rec = Object.assign({}, s.recursos || {});
+      rec[yo.id] = Object.assign({}, rec[yo.id] || {});
+      (s.hexes||[]).forEach(h => {
+        if (!h.num) return;
+        const toca = (piezas[yo.id].base||[]).filter(b => b.hex === s.hexes.indexOf(h)).length +
+                     (piezas[yo.id].hub ||[]).filter(b => b.hex === s.hexes.indexOf(h)).length * 2;
+        if (toca > 0) rec[yo.id][h.rec] = (rec[yo.id][h.rec]||0) + toca;
+      });
+      upd.recursos = rec;
+      const gano = Object.entries(rec[yo.id]).filter(([,v]) => v>0)
+        .map(([k,v]) => v + ' ' + k.toUpperCase()).join(' · ');
+      aviso('🎁 Producción inicial', gano || 'ese rincón no produce');
+    }
+    upd.colocadoEn = n;
+    upd.colocPaso = (tipo === 'base') ? 'camino' : null;
+    if (n >= orden.length * 2){
+      /* todos han puesto sus dos piezas: EMPIEZA LA PARTIDA */
+      upd.fase = 'juego'; upd.turno = (s.anfitrion || orden[0]); upd.colocPaso = null;
+    } else {
+      if (!upd.colocPaso) upd.turno = orden[n % orden.length];
+    }
+    await update(ref(db,'extreme/salas/'+salaCod), upd);
+    if (tipo === 'base') aviso('✔ Basecamp puesto', '', 1400);
+    return;
+  }
+
+  /* ===== YA JUGANDO: se paga ===== */
   const mis = (s.recursos && s.recursos[yo.id]) || {};
   const coste = COSTES[tipo];
   if (!alcanza(mis, coste)){
@@ -815,15 +902,21 @@ $('bPasar').onclick = async () => {
 
 $('bEmpezar').onclick = async () => {
   if (!salaCod) return;
+  const s0 = await leerSala(salaCod);
+  const ids = Object.keys(s0.jugadores || {});
+
+  /* ===== LA COLOCACION INICIAL (lo primero en Catan) =====
+     Ida: cada uno pone 1 Basecamp + 1 Ruta.  Vuelta: el mismo orden al reves,
+     y el SEGUNDO Basecamp ya cobra los recursos que toca. */
+  const orden = [...ids, ...[...ids].reverse()];
   const hexes = crearTablero();
   const recursos = {}, pa = {};
-  Object.keys((await leerSala(salaCod)).jugadores || {}).forEach(id => {
-    recursos[id] = { flight:2, ride:2, board:2, climb:2, jump:0 };
-    pa[id] = 0;
-  });
+  ids.forEach(id => { recursos[id] = { flight:0, board:0, ride:0, climb:0, jump:0 }; pa[id] = 0; });
+
   await update(ref(db,'extreme/salas/'+salaCod), {
-    fase:'juego', empezada:Date.now(), hexes, turno: yo.id, recursos, pa,
-    piezas: {}, dados: null
+    fase:'colocando', empezada:Date.now(), hexes, recursos, pa,
+    piezas:{}, dados:null,
+    orden, colocadoEn: 0, turno: orden[0]
   });
 };
 $('bLink').onclick = async () => {
