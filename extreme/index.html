@@ -871,7 +871,8 @@ async function coloca(tipo, clave, hexIdx){
     }
     /* tiene que tocar una de tus rutas (o ser el primero) */
     const rutas = piezas[yo.id].camino.map(p => p.k);
-    const toca = rutas.some(rk => rk.split('|').some(v => v.split('#')[0] === clave));
+    /* la arista es "a#x1#y1|a#x2#y2" y el vertice "v#x#y": comparo el vertice entero */
+    const toca = rutas.some(rk => rk.split('|').some(ar => ar.replace(/^a#/, 'v#') === clave));
     const hayAlgo = Object.values(piezas).some(p => [...(p.base||[]), ...(p.hub||[])].some(x => x.k === clave));
     if (hayAlgo){ aviso('Ya hay una pieza ahí',''); return; }
     if (!toca && rutas.length){ aviso('Lejos', 'Un Basecamp tiene que tocar una de tus rutas.'); return; }
