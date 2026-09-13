@@ -161,6 +161,26 @@
     border-radius:9px;padding:10px;font-size:12px;text-align:center;margin-top:10px;display:none;
     text-shadow:0 1px 2px rgba(0,0,0,.8)}
   .err.on{display:block}
+
+  /* ===== LA PARTIDA (Fase 2): el tablero compartido ===== */
+  .barra{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin-bottom:10px}
+  .barra .j{display:flex;align-items:center;gap:6px;padding:4px 12px 4px 5px;border-radius:22px;
+    background-image:url('madera.jpg');background-size:cover;background-position:center;
+    font-size:11.5px;font-weight:800;color:#f0e2c4;
+    text-shadow:0 1px 2px rgba(0,0,0,.9);
+    box-shadow:0 0 0 2px #1a1009, 0 0 0 3.5px rgba(201,165,88,.5)}
+  .barra .j.act{box-shadow:0 0 0 2px #1a1009, 0 0 0 4.5px #f0d899, 0 0 18px rgba(240,216,153,.75)}
+  .barra .j img{width:23px;height:23px;border-radius:50%;display:block}
+  .turno{text-align:center;font-size:12.5px;color:#e8c87a;font-weight:800;margin-bottom:10px;
+    text-shadow:0 2px 4px rgba(0,0,0,.95)}
+  .mapa{width:100%;display:block;position:relative}
+  .mapa svg{width:100%;display:block}
+  .fichaInfo{margin-top:10px;font-size:12px;color:#e8dcc0;text-align:center;line-height:1.55;
+    min-height:34px;text-shadow:0 2px 4px rgba(0,0,0,.95)}
+  .fichaInfo b{color:#f0d899}
+  .hex{cursor:pointer}
+  .hex:active{opacity:.82}
+  .nofly path{stroke-dasharray:5 4}
 </style>
 </head>
 <body>
@@ -232,6 +252,16 @@
     <button class="btn" id="bEmpezar" disabled>FALTAN PILOTOS</button>
     <div class="pie" id="notaEsp"></div>
   </div>
+
+  <!-- 5 LA PARTIDA: el tablero compartido -->
+  <div class="pant" id="p5" style="margin-top:10px">
+    <div class="barra" id="barra"></div>
+    <div class="turno" id="turnoTxt"></div>
+    <div class="mapa"><svg id="tablero" viewBox="0 0 466 500"></svg></div>
+    <div class="fichaInfo" id="info"></div>
+    <div class="err" id="err5"></div>
+    <button class="btn" id="bPasar">PASAR EL TURNO</button>
+  </div>
 </div>
 
 <!-- la brujula de la esquina -->
@@ -271,7 +301,7 @@ const COLORES = [
 ];
 
 const $ = id => document.getElementById(id);
-const pant = n => ['p1','p2','p3','p4'].forEach(p => $(p).classList.toggle('on', p === n));
+const pant = n => ['p1','p2','p3','p4','p5'].forEach(p => $(p).classList.toggle('on', p === n));
 const err = (id, txt) => { const e = $(id); e.textContent = txt; e.classList.add('on');
                             setTimeout(() => e.classList.remove('on'), 3600); };
 let yo = null, salaCod = null, esAnfitrion = false, oyente = null;
@@ -311,6 +341,15 @@ function escuchar(cod){
   oyente = onValue(ref(db, 'extreme/salas/' + cod), snap => {
     const s = snap.val();
     if (!s){ pant('p1'); return; }
+
+    /* si la partida ya empezo, todos a la mesa con el MISMO tablero */
+    if (s.fase === 'juego'){
+      pant('p5');
+      if (s.hexes) pintaTablero(s.hexes);
+      pintaBarra(s);
+      return;
+    }
+
     const lista = Object.entries(s.jugadores || {}).map(([id,j]) => ({ id, ...j }));
     $('codGrande').textContent = cod;
     $('cuantos').textContent = lista.length === 1 ? 'esperando pilotos…' : lista.length + ' pilotos';
@@ -368,10 +407,131 @@ $('bEntrar').onclick = async () => {
   salaCod = cod; esAnfitrion = (s.anfitrion === id); escuchar(cod); pant('p4');
 };
 
+/* ==========================================================================
+   FASE 2 — EL TABLERO COMPARTIDO
+   Los mismos 19 hexagonos para todos. Las TARJETAS de los 7 hexagonos de
+   arriba son las de Pam; los demas usan su color.
+   ========================================================================== */
+
+/* las 6 ilustraciones de terreno (los hexagonos de Pam) */
+const FOTOS = {
+  flight:'arte/hex_cordillera.png', board:'arte/hex_costa.png',
+  ride:'arte/hex_laderas.png',     climb:'arte/hex_pared.png',
+  jump:'arte/hex_cumbres.png',     nofly:'arte/hex_nofly.png',
+};
+const DIBU = { flight:'#7c4ddb', board:'#0e8ba8', ride:'#4f8f1e',
+               climb:'#c1741a', jump:'#c73b34', nofly:'#5f584e' };
+const TERR = { flight:'Cordillera', board:'Costa y nieve', ride:'Laderas',
+               climb:'Paredes', jump:'Cumbres', nofly:'Día sin vuelo' };
+const MAZO = [...Array(4).fill('flight'), ...Array(4).fill('board'), ...Array(4).fill('climb'),
+              ...Array(3).fill('ride'), ...Array(3).fill('jump'), 'nofly'];
+const NUMS = [2,3,3,4,4,5,5,6,6,8,8,9,9,10,10,11,11,12];
+const PIPS = {2:1,3:2,4:3,5:4,6:5,8:5,9:4,10:3,11:2,12:1};
+const COLS = [3,4,5,4,3];
+const R = 46, RX = 1.5*R, RY = Math.sqrt(3)*R, CX = 233, CY = 250;
+
+function revuelve(a){
+  const r = a.slice();
+  for (let i=r.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [r[i],r[j]]=[r[j],r[i]]; }
+  return r;
+}
+function pathHex(cx, cy){
+  const p = [];
+  for (let i=0;i<6;i++){ const a=Math.PI/180*(60*i); p.push([cx+R*Math.cos(a), cy+R*Math.sin(a)]); }
+  return p.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1)).join(' ')+' Z';
+}
+/* el tablero se genera UNA vez (el anfitrion) y se guarda en la sala:
+   asi los dos ven exactamente el mismo mundo. */
+function crearTablero(){
+  const mazo = revuelve(MAZO), nums = revuelve(NUMS);
+  const hs = []; let k=0, ni=0;
+  COLS.forEach((cuantos,c) => {
+    const cx = CX + (c-2)*RX, y0 = CY - ((cuantos-1)*RY)/2;
+    for (let i=0;i<cuantos;i++){
+      const rec = mazo[k++];
+      hs.push({ c, i, rec, num: rec==='nofly'?null:nums[ni++] });
+    }
+  });
+  return hs;
+}
+
+function pintaTablero(hexes){
+  const svg = $('tablero');
+  if (!svg) return;
+  const HX = 2*R, HY = Math.sqrt(3)*R;
+  let h = '';
+  const lista = [];
+  let k = 0;
+  COLS.forEach((cuantos,c) => {
+    const cx = CX + (c-2)*RX, y0 = CY - ((cuantos-1)*RY)/2;
+    for (let i=0;i<cuantos;i++){
+      const rec = hexes[k].rec, num = hexes[k].num, id = 'h'+c+'_'+i;
+      lista.push({ cx, cy: y0+i*RY, rec, num, id }); k++;
+    }
+  });
+  lista.forEach(x => { h += `<clipPath id="c${x.id}"><path d="${pathHex(x.cx,x.cy)}"/></clipPath>`; });
+  h += '<rect width="466" height="500" fill="none"/>';
+  lista.forEach(x => {
+    h += `<g class="hex${x.rec==='nofly'?' nofly':''}" data-r="${x.rec}" data-n="${x.num||''}">`;
+    h += `<image href="${FOTOS[x.rec]}" x="${(x.cx-HX/2).toFixed(1)}" y="${(x.cy-HY/2).toFixed(1)}"
+           width="${HX.toFixed(1)}" height="${HY.toFixed(1)}" preserveAspectRatio="xMidYMid slice"
+           clip-path="url(#c${x.id})"/>`;
+    h += `<path d="${pathHex(x.cx,x.cy)}" fill="none" stroke="#1a1009" stroke-width="2.4" stroke-linejoin="round"/>`;
+    if (x.num){
+      const alto = (x.num===6||x.num===8) ? ' fill="#ff6b60"' : ' fill="#fff"';
+      const nx = x.cx + R*0.54, ny = x.cy - R*0.36;
+      h += `<text x="${nx.toFixed(1)}" y="${ny.toFixed(1)}" text-anchor="middle" dominant-baseline="central"
+             style="font-family:Anton,sans-serif;font-size:19px;paint-order:stroke;stroke:#1a1009;
+             stroke-width:3.2px;stroke-linejoin:round"${alto}>${x.num}</text>`;
+      const p = PIPS[x.num], sep = 3.7, x0 = nx - ((p-1)*sep)/2;
+      for (let i=0;i<p;i++) h += `<circle cx="${(x0+i*sep).toFixed(1)}" cy="${(ny+12.5).toFixed(1)}" r="1.5"
+        fill="#fff" stroke="#1a1009" stroke-width="1"/>`;
+    }
+    h += '</g>';
+  });
+  svg.innerHTML = h;
+  svg.querySelectorAll('.hex').forEach(g => g.onclick = () => {
+    const r = g.dataset.r, n = g.dataset.n;
+    const p = n ? (PIPS[+n]/36*100).toFixed(1) : null;
+    $('info').innerHTML = `<b>${TERR[r]}</b>${n ? ' · ' + n : ''}<br>` +
+      (p ? `produce el <b>${p}%</b> de las veces` : 'no produce nunca — aquí vive el Mal Tiempo');
+  });
+}
+
+/* la barra de pilotos, con el que tiene el turno encendido */
+function pintaBarra(s){
+  const lista = Object.entries(s.jugadores || {}).map(([id,j]) => ({ id, ...j }));
+  const el = $('barra');
+  if (!el) return;
+  el.innerHTML = lista.map(j => {
+    const col = COLORES.find(c => c.id === j.color) || COLORES[0];
+    const act = (j.id === s.turno) ? ' act' : '';
+    return `<span class="j${act}"><img src="${col.img}" alt="">${(j.nombre||'').replace(/[<>]/g,'')}</span>`;
+  }).join('');
+  const t = lista.find(j => j.id === s.turno);
+  const mio = (s.turno === yo.id);
+  $('turnoTxt').textContent = t ? (mio ? 'TU TURNO — ' + t.nombre : 'Turno de ' + t.nombre) : '';
+  $('bPasar').disabled = !mio;
+  $('bPasar').textContent = mio ? 'PASAR EL TURNO' : 'ESPERANDO…';
+}
+
+/* el boton de pasar: rota al siguiente piloto */
+$('bPasar').onclick = async () => {
+  if (!salaCod) return;
+  const s = await leerSala(salaCod);
+  if (!s || s.turno !== yo.id) return;
+  const ids = Object.keys(s.jugadores || {});
+  const sig = ids[(ids.indexOf(yo.id) + 1) % ids.length];
+  await update(ref(db,'extreme/salas/'+salaCod), { turno: sig });
+};
+
 $('bEmpezar').onclick = async () => {
   if (!salaCod) return;
-  await update(ref(db,'extreme/salas/'+salaCod), { fase:'juego', empezada:Date.now() });
-  alert('¡La partida va a empezar!\n\nLo siguiente es la Fase 2: el tablero compartido.');
+  /* el anfitrion crea el tablero y lo guarda: los dos veran el mismo */
+  const hexes = crearTablero();
+  await update(ref(db,'extreme/salas/'+salaCod), {
+    fase:'juego', empezada:Date.now(), hexes, turno: yo.id
+  });
 };
 $('bLink').onclick = async () => {
   const url = location.origin + location.pathname + '?s=' + salaCod;
@@ -381,22 +541,81 @@ $('bLink').onclick = async () => {
   catch(e){ prompt('Copia el link:', url); }
 };
 
+/* ==================== ARRANQUE ==================== */
 window._c1 = null; window._c2 = null;
 const el1 = c => { window._c1 = c; pintaAro('aro1', [], c, el1); };
 const el2 = c => { window._c2 = c; pintaAro('aro2', [], c, el2); };
 pintaAro('aro1', [], null, el1);
 pintaAro('aro2', [], null, el2);
 
-const q = new URLSearchParams(location.search).get('s');
-if (q && q.length === 4){
-  $('inCod').value = q.toUpperCase(); pant('p2');
-  leerSala(q.toUpperCase()).then(s => {
-    if (s){
-      const occ = Object.values(s.jugadores||{}).map(j => j.color);
-      const e2 = c => { window._c2 = c; pintaAro('aro2', occ, c, e2); };
-      pintaAro('aro2', occ, null, e2);
+/* --- recordar quién eres, para no volver a pedirlo ---
+   Se guarda en el propio telefono. Asi, si cierras la app y vuelves, entras solo. */
+function recuerda(){ try{ return JSON.parse(localStorage.getItem('extreme_yo')||'null'); }catch(e){ return null; } }
+function guarda(x){ try{ localStorage.setItem('extreme_yo', JSON.stringify(x)); }catch(e){} }
+
+const q1 = new URLSearchParams(location.search);
+const qCod = (q1.get('s')||'').toUpperCase();
+const qNom = q1.get('n'), qCol = q1.get('c');
+
+async function entrarDirecto(cod, nombre, color){
+  const s = await leerSala(cod);
+  if (!s) return false;
+  const js = s.jugadores || {};
+  /* si ya estas dentro, entras con tu misma ficha */
+  const mio = Object.entries(js).find(([id,j]) => j.nombre === nombre);
+  if (mio){
+    yo = { id: mio[0], nombre, color: mio[1].color };
+    esAnfitrion = (s.anfitrion === mio[0]);
+    onDisconnect(ref(db,'extreme/salas/'+cod+'/jugadores/'+mio[0])).remove();
+  } else {
+    const libres = COLORES.map(c=>c.id).filter(c => !Object.values(js).some(j=>j.color===c));
+    const col = (color && libres.includes(color)) ? color : libres[0];
+    if (!col) return false;
+    const id = 'j' + Date.now() + Math.floor(Math.random()*99);
+    yo = { id, nombre, color: col };
+    await set(ref(db,'extreme/salas/'+cod+'/jugadores/'+id), { nombre, color: col });
+    await onDisconnect(ref(db,'extreme/salas/'+cod+'/jugadores/'+id)).remove();
+    esAnfitrion = (s.anfitrion === id);
+  }
+  guarda({ cod, id: yo.id, nombre: yo.nombre });
+  salaCod = cod; escuchar(cod);
+  return true;
+}
+
+/* 1) si el link trae todo (?s=COD&n=Tu&c=rojo), entras directo */
+if (qCod.length === 4 && qNom){
+  entrarDirecto(qCod, qNom, qCol).then(ok => { if (!ok) pant('p2'); });
+}
+/* 2) si ya jugaste antes en este telefono, vuelves solo a tu sala */
+else if (qCod.length === 4){
+  leerSala(qCod).then(s => {
+    const guardado = recuerda();
+    if (s && guardado && guardado.cod === qCod && s.jugadores && s.jugadores[guardado.id]){
+      yo = { id: guardado.id, nombre: guardado.nombre, color: s.jugadores[guardado.id].color };
+      esAnfitrion = (s.anfitrion === guardado.id);
+      salaCod = qCod; escuchar(qCod);
+    } else {
+      $('inCod').value = qCod; pant('p2');
+      if (s){
+        const occ = Object.values(s.jugadores||{}).map(j => j.color);
+        const e2 = c => { window._c2 = c; pintaAro('aro2', occ, c, e2); };
+        pintaAro('aro2', occ, null, e2);
+      }
     }
   });
+}
+/* 3) sin codigo: a la portada */
+else {
+  const guardado = recuerda();
+  if (guardado && guardado.cod){
+    leerSala(guardado.cod).then(s => {
+      if (s && s.jugadores && s.jugadores[guardado.id]){
+        yo = { id: guardado.id, nombre: guardado.nombre, color: s.jugadores[guardado.id].color };
+        esAnfitrion = (s.anfitrion === guardado.id);
+        salaCod = guardado.cod; escuchar(guardado.cod);
+      }
+    });
+  }
 }
 </script>
 </body>
