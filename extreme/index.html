@@ -211,6 +211,49 @@
     color:#f0e2c4;text-shadow:0 2px 4px rgba(0,0,0,.95);
     box-shadow:0 0 0 3px #1a1009, 0 0 0 6px #c9a558, 0 14px 34px rgba(0,0,0,.85)}
   .aviso .caja b{color:#f0d899;font-size:20px;display:block;margin-bottom:6px}
+
+  /* ===== EL COMERCIO ===== */
+  .panel{position:fixed;inset:0;background:rgba(8,5,2,.82);display:none;
+    align-items:center;justify-content:center;z-index:60;padding:18px}
+  .panel.on{display:flex}
+  .pc{background-color:#2a1d12;background-image:url('madera.jpg');background-size:cover;
+    background-position:center;border-radius:16px;padding:20px 16px;max-width:350px;width:100%;
+    box-shadow:0 0 0 3px #1a1009, 0 0 0 6px #c9a558, 0 14px 34px rgba(0,0,0,.85)}
+  .pc h3{margin:0 0 15px;text-align:center;font-family:'Anton',sans-serif;font-size:18px;
+    color:#f0d899;letter-spacing:1.2px;text-shadow:0 2px 4px rgba(0,0,0,.9)}
+  .pcFila{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:15px}
+  .pcLado{flex:1;text-align:center}
+  .pcT{font-size:9px;font-weight:800;letter-spacing:1.4px;color:#c9a558;margin-bottom:7px;
+    text-transform:uppercase;text-shadow:0 1px 2px rgba(0,0,0,.9)}
+  .pcFlecha{font-size:19px;color:#c9a558}
+  .pcRecs{display:flex;gap:5px;justify-content:center;flex-wrap:wrap}
+  .pcRecs .r{width:36px;height:36px;border-radius:50%;position:relative;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;opacity:.34;transition:transform .12s;
+    box-shadow:0 0 0 2px #1a1009, 0 0 0 3.5px rgba(201,165,88,.45)}
+  .pcRecs .r.on{opacity:1;transform:scale(1.12);
+    box-shadow:0 0 0 2px #1a1009, 0 0 0 4px #f0d899, 0 0 15px rgba(240,216,153,.75)}
+  .pcRecs .r img{width:100%;height:100%;border-radius:50%;display:block}
+  .pcRecs .r .n{position:absolute;bottom:-5px;right:-4px;background:#2a1d12;border-radius:10px;
+    font-size:10px;font-weight:800;color:#f0d899;padding:0 4px;border:1px solid rgba(201,165,88,.5)}
+  .pcBtns{display:flex;gap:8px;margin-bottom:0}
+  .pcBtns .btn{margin-top:0}
+  .pcBtns .btn.chico{flex:0 0 auto;font-size:10.5px}
+  .pcBtns .btn:last-child{flex:1}
+
+  /* las ofertas que hay en la mesa */
+  .oferta{border-radius:12px;padding:10px 12px;margin-top:10px;
+    background-image:url('madera.jpg');background-size:cover;background-position:center;
+    box-shadow:0 0 0 2px #1a1009, 0 0 0 3.5px rgba(201,165,88,.5);
+    font-size:12px;color:#f0e2c4;text-shadow:0 1px 2px rgba(0,0,0,.9)}
+  .oferta .quien{font-weight:800;color:#f0d899}
+  .oferta .cambio{margin:5px 0 9px;line-height:1.55}
+  .oferta .cambio b{color:#fff}
+  .oferta .bb{display:flex;gap:7px}
+  .oferta .bb button{flex:1;border:none;border-radius:8px;padding:9px;font-family:'Anton',sans-serif;
+    font-size:12px;letter-spacing:.5px;cursor:pointer}
+  .oferta .si{background:linear-gradient(180deg,#79b93a,#3d7016);color:#fff}
+  .oferta .no{background:linear-gradient(180deg,#8a8178,#4a453e);color:#f0e2c4}
+  .oferta .mia{font-size:11px;color:#c9a558;text-align:center}
 </style>
 </head>
 <body>
@@ -303,8 +346,37 @@
         <button class="btn chico" id="bBase">BASECAMP</button>
         <button class="btn chico" id="bHub">HUB</button>
       </div>
+      <button class="btn alt" id="bComercio">🔄 COMERCIAR</button>
       <button class="btn alt" id="bPasar">PASAR EL TURNO</button>
     </div>
+
+    <!-- LAS OFERTAS QUE HAY EN LA MESA -->
+    <div id="ofertas"></div>
+  </div>
+</div>
+
+<!-- EL PANEL DE COMERCIO: eliges que das y que pides -->
+<div class="panel" id="panelComercio">
+  <div class="pc">
+    <h3>🔄 Comerciar</h3>
+
+    <div class="pcFila">
+      <div class="pcLado">
+        <div class="pcT">DAS</div>
+        <div class="pcRecs" id="doy"></div>
+      </div>
+      <div class="pcFlecha">⇄</div>
+      <div class="pcLado">
+        <div class="pcT">QUIERES</div>
+        <div class="pcRecs" id="pido"></div>
+      </div>
+    </div>
+
+    <div class="pcBtns">
+      <button class="btn chico" id="pcBanco">AL BANCO (4:1)</button>
+      <button class="btn" id="pcOfrecer">OFRECER A LOS DEMÁS</button>
+    </div>
+    <button class="btn alt" id="pcCerrar">Cancelar</button>
   </div>
 </div>
 
@@ -592,7 +664,7 @@ function pintaBarra(s){
     $('bPasar').textContent = 'COLOCACIÓN INICIAL';
     $('bDados').disabled = true;
     $('bDados').textContent = '🎲 EMPIEZA DESPUÉS';
-    ['bCamino','bBase','bHub'].forEach(b => $(b).disabled = true);
+    ['bCamino','bBase','bHub','bComercio'].forEach(b => $(b).disabled = true);
     $('bBase').classList.toggle('on',   mio && paso === 'base');
     $('bCamino').classList.toggle('on', mio && paso === 'camino');
     if (mio) $('info').innerHTML = paso === 'base'
@@ -607,7 +679,7 @@ function pintaBarra(s){
   $('bPasar').textContent = mio ? 'PASAR EL TURNO' : 'ESPERANDO…';
   $('bDados').disabled = !mio || !!s.dados;
   $('bDados').textContent = !mio ? '🎲 ESPERANDO…' : (s.dados ? '🎲 SACASTE ' + s.dados.total : '🎲 TIRAR LOS DADOS');
-  ['bCamino','bBase','bHub'].forEach(b => $(b).disabled = !mio);
+  ['bCamino','bBase','bHub','bComercio'].forEach(b => $(b).disabled = !mio);
   pintaRecursos(s);
 }
 
@@ -815,6 +887,7 @@ async function coloca(tipo, clave, hexIdx){
 function pintaPartida(s){
   pintaBarra(s);
   pintaRecursos(s);
+  pintaOfertas(s);
   const svg = $('tablero');
   if (!svg) return;
   /* quito las capas de piezas y las vuelvo a poner */
@@ -884,6 +957,144 @@ function pintaPartida(s){
   });
 }
 
+/* ==========================================================================
+   EL COMERCIO
+   - Ofreces recursos a los demas: ellos aceptan o rechazan.
+   - O cambias con el banco a 4:1 (4 de uno por 1 de otro).
+   ========================================================================== */
+let doy = {}, pido = {};
+
+function abreComercio(){
+  doy = {}; pido = {};
+  pintaPanel();
+  $('panelComercio').classList.add('on');
+}
+$('pcCerrar').onclick = () => $('panelComercio').classList.remove('on');
+$('bComercio').onclick = abreComercio;
+
+async function pintaPanel(){
+  const s = await leerSala(salaCod);
+  const mis = (s.recursos && s.recursos[yo.id]) || {};
+  const pinta = (cont, obj, cual) => {
+    $(cont).innerHTML = COLORES.map(c => {
+      const tengo = mis[c.id] || 0;
+      const n = obj[c.id] || 0;
+      const puede = (cual === 'doy') ? tengo > 0 : true;
+      return `<span class="r${n?' on':''}" data-l="${cual}" data-c="${c.id}"
+        style="background:radial-gradient(circle at 35% 28%, ${c.c}, ${c.c}88);
+        ${puede?'':'opacity:.15;pointer-events:none'}"
+        title="${c.n}"><img src="${c.img}" alt="">
+        <span class="n">${cual==='doy' ? (n?n+'/'+tengo:tengo) : (n||'')}</span></span>`;
+    }).join('');
+    $(cont).querySelectorAll('.r').forEach(el => el.onclick = () => {
+      const c = el.dataset.c;
+      if (obj[c]) delete obj[c]; else obj[c] = 1;
+      pintaPanel();
+    });
+  };
+  pinta('doy', doy, 'doy');
+  pinta('pido', pido, 'pido');
+  const nDoy = Object.values(doy).reduce((a,b)=>a+b,0);
+  const nPido = Object.values(pido).reduce((a,b)=>a+b,0);
+  $('pcBanco').textContent = nDoy && nPido ? `BANCO (${nDoy}:${nPido})` : 'AL BANCO (4:1)';
+}
+
+/* al banco: 4 de uno por 1 de otro */
+$('pcBanco').onclick = async () => {
+  const d = Object.keys(doy), q = Object.keys(pido);
+  const nDoy = Object.values(doy).reduce((a,b)=>a+b,0);
+  const nPido = Object.values(pido).reduce((a,b)=>a+b,0);
+  if (d.length !== 1 || q.length !== 1 || nPido !== 1 || nDoy !== 4){
+    aviso('Al banco: 4 por 1', 'Elige <b>4 de UN recurso</b> que das, y <b>1</b> que quieres.'); return;
+  }
+  const s = await leerSala(salaCod);
+  const mis = (s.recursos && s.recursos[yo.id]) || {};
+  if ((mis[d[0]]||0) < 4){ aviso('No te llega', 'Necesitas 4 ' + d[0].toUpperCase()); return; }
+  const rec = Object.assign({}, s.recursos || {});
+  rec[yo.id] = Object.assign({}, mis);
+  rec[yo.id][d[0]] -= 4; rec[yo.id][q[0]] = (rec[yo.id][q[0]]||0) + 1;
+  await update(ref(db,'extreme/salas/'+salaCod), { recursos: rec });
+  $('panelComercio').classList.remove('on');
+  aviso('🔄 Cambio con el banco', `Diste 4 ${d[0].toUpperCase()} y cogiste 1 ${q[0].toUpperCase()}`);
+};
+
+/* ofrecer a los demas */
+$('pcOfrecer').onclick = async () => {
+  const nDoy = Object.values(doy).reduce((a,b)=>a+b,0);
+  const nPido = Object.values(pido).reduce((a,b)=>a+b,0);
+  if (!nDoy || !nPido){ aviso('Falta algo', 'Elige qué <b>das</b> y qué <b>quieres</b>.'); return; }
+  const s = await leerSala(salaCod);
+  const mis = (s.recursos && s.recursos[yo.id]) || {};
+  for (const k in doy) if ((mis[k]||0) < doy[k]){
+    aviso('No te llega', `No tienes ${doy[k]} ${k.toUpperCase()}`); return;
+  }
+  const ofertas = Object.assign({}, s.ofertas || {});
+  const oid = 'o' + Date.now();
+  ofertas[oid] = { de: yo.id, doy: Object.assign({}, doy), pido: Object.assign({}, pido), t: Date.now() };
+  await update(ref(db,'extreme/salas/'+salaCod), { ofertas });
+  $('panelComercio').classList.remove('on');
+  aviso('🔄 Oferta enviada', 'Los demás la verán y podrán aceptarla');
+};
+
+/* pintar las ofertas que hay en la mesa */
+function pintaOfertas(s){
+  const of = s.ofertas || {};
+  const el = $('ofertas');
+  if (!el) return;
+  const nombres = {};
+  Object.entries(s.jugadores || {}).forEach(([id,j]) => nombres[id] = j.nombre || '?');
+  const txt = (o) => Object.entries(o).map(([k,v]) => `<b>${v}</b> ${k.toUpperCase()}`).join(' + ');
+  const claves = Object.keys(of);
+  el.innerHTML = claves.length ? claves.map(k => {
+    const o = of[k];
+    const mia = (o.de === yo.id);
+    const puedo = !mia && Object.entries(o.pido).every(([r,n]) =>
+      ((s.recursos && s.recursos[yo.id] && s.recursos[yo.id][r]) || 0) >= n);
+    return `<div class="oferta">
+      <div class="quien">${nombres[o.de] || '?'} ofrece</div>
+      <div class="cambio">da <b>${txt(o.doy)}</b><br>y quiere <b>${txt(o.pido)}</b></div>
+      ${ mia ? `<div class="mia">Tu oferta — esperando respuesta…</div>
+                <div class="bb"><button class="no" data-x="${k}">RETIRAR</button></div>`
+            : `<div class="bb">
+                 <button class="si" data-a="${k}" ${puedo?'':'disabled style="opacity:.4"'}>ACEPTAR</button>
+                 <button class="no" data-r="${k}">RECHAZAR</button>
+               </div>`}
+    </div>`;
+  }).join('') : '';
+  el.querySelectorAll('[data-a]').forEach(b => b.onclick = () => responde(b.dataset.a, true));
+  el.querySelectorAll('[data-r]').forEach(b => b.onclick = () => responde(b.dataset.r, false));
+  el.querySelectorAll('[data-x]').forEach(b => b.onclick = () => responde(b.dataset.x, null));
+}
+
+/* aceptar, rechazar o retirar una oferta */
+async function responde(oid, acepta){
+  const s = await leerSala(salaCod);
+  const o = (s.ofertas || {})[oid];
+  if (!o) return;
+  const ofertas = Object.assign({}, s.ofertas || {});
+  if (acepta === null){ delete ofertas[oid]; }
+  else if (acepta){
+    /* el cambio de verdad */
+    const rec = Object.assign({}, s.recursos || {});
+    rec[o.de]  = Object.assign({}, rec[o.de]  || {});
+    rec[yo.id] = Object.assign({}, rec[yo.id] || {});
+    for (const k in o.doy){                     /* de -> yo */
+      rec[o.de][k]  = (rec[o.de][k]||0) - o.doy[k];
+      rec[yo.id][k] = (rec[yo.id][k]||0) + o.doy[k];
+    }
+    for (const k in o.pido){                    /* yo -> de */
+      rec[yo.id][k] = (rec[yo.id][k]||0) - o.pido[k];
+      rec[o.de][k]  = (rec[o.de][k]||0) + o.pido[k];
+    }
+    delete ofertas[oid];
+    await update(ref(db,'extreme/salas/'+salaCod), { recursos: rec, ofertas });
+    aviso('✔ Trato hecho', 'Se ha hecho el cambio');
+    return;
+  } else {
+    ofertas[oid].rechazo = (ofertas[oid].rechazo || 0) + 1;
+  }
+  await update(ref(db,'extreme/salas/'+salaCod), { ofertas });
+}
 /* la posicion de cada hexagono en el mapa */
 const POS = [];
 function posHex(c, i){
