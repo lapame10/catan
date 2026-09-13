@@ -92,7 +92,7 @@
   <div class="sub">Explore · Ride · Climb · Fly · Jump</div>
 </header>
 
-<div class="mapa"><svg id="tablero" viewBox="0 0 466 500"></svg></div>
+<div class="mapa"><svg id="tablero" viewBox="0 0 480 620"></svg></div>
 
 <div class="pie">
   <div id="detalle"><div class="carta" id="carta"></div></div>
@@ -161,7 +161,13 @@ const SPOTS = [
   {n:'VOLCANO EXPEDITION', c:'LOS CUATRO',     pa:'+2 PA'},
 ];
 
-const R = 46, RX = 1.5*R, RY = Math.sqrt(3)*R, CX = 233, CY = 250;
+/* ===== LA GEOMETRIA DEL PANAL =====
+   Hexagonos DE PUNTA (pointy-top), como el tablero de Pam:
+   - el ancho de cada hexagono es raiz(3)*R, el alto es 2R
+   - las columnas van a raiz(3)*R  (asi se tocan por los lados)
+   - las filas van a 2R
+   - las columnas impares van MEDIA FICHA mas abajo, y asi encajan. */
+const R = 46, RX = Math.sqrt(3)*R, RY = 2*R, CX = 240, CY = 305;
 
 function revuelve(a){
   const r = a.slice();
@@ -179,7 +185,9 @@ function construye(){
   const mazo = revuelve(MAZO), nums = revuelve(NUMS);
   layout = []; let k = 0, ni = 0;
   COLS.forEach((cuantos,c)=>{
-    const cx = CX + (c-2)*RX, y0 = CY - ((cuantos-1)*RY)/2;
+    const cx = CX + (c-2)*RX;
+    /* las columnas impares van MEDIA FICHA mas abajo: asi encajan de punta */
+    const y0 = CY - ((cuantos-1)*RY)/2 + ((c % 2) ? RY/2 : 0);
     for (let i=0;i<cuantos;i++){
       const rec = mazo[k++];
       layout.push({cx, cy:y0+i*RY, rec, num: rec==='nofly'?null:nums[ni++], id:'c'+c+'_'+i});
@@ -189,7 +197,7 @@ function construye(){
 
 function pinta(){
   const svg = document.getElementById('tablero');
-  const HX = 2*R, HY = Math.sqrt(3)*R;
+  const HX = Math.sqrt(3)*R, HY = 2*R;
   let h = '<defs><radialGradient id="mar" cx="50%" cy="42%" r="74%">' +
           '<stop offset="0%" stop-color="#1b4560"/><stop offset="100%" stop-color="#0b1a28"/></radialGradient>';
   Object.keys(DEPORTES).forEach(k=>{
@@ -198,7 +206,7 @@ function pinta(){
       <stop offset="0%" stop-color="${d.col2}"/><stop offset="100%" stop-color="${d.col}"/></radialGradient>`;
   });
   layout.forEach(hex=>{ h += `<clipPath id="c${hex.id}"><path d="${pathHex(hex.cx,hex.cy)}"/></clipPath>`; });
-  h += '</defs><rect width="466" height="500" fill="url(#mar)"/>';
+  h += '</defs><rect width="480" height="620" fill="url(#mar)"/>';
 
   layout.forEach(hex=>{
     const d = DEPORTES[hex.rec];
