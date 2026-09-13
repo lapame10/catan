@@ -477,6 +477,29 @@ function escuchar(cod){
     const s = snap.val();
     if (!s){ pant('p1'); return; }
 
+    /* ===== QUE NUNCA TE DEJE FUERA =====
+       Si vuelves a entrar, el juego te da un id nuevo, y entonces el turno
+       apunta a tu id viejo: parecia que no te dejaba jugar. Aqui, si tu id ya
+       no esta pero tu NOMBRE si, adoptas esa ficha y sigues jugando. */
+    if (yo && s.jugadores && !s.jugadores[yo.id]){
+      const mio = Object.entries(s.jugadores).find(([id,j]) => j.nombre === yo.nombre);
+      if (mio){
+        yo.id = mio[0];
+        yo.color = mio[1].color || yo.color;
+        esAnfitrion = (s.anfitrion === yo.id);
+        guarda({ cod, id: yo.id, nombre: yo.nombre });
+      } else {
+        /* tu ficha no esta y tu nombre tampoco: vuelve a entrar como un piloto nuevo */
+        const libres = COLORES.map(c=>c.id).filter(c => !Object.values(s.jugadores).some(j=>j.color===c));
+        if (libres.length){
+          yo.color = libres[0];
+          set(ref(db,'extreme/salas/'+cod+'/jugadores/'+yo.id), { nombre: yo.nombre, color: yo.color });
+          onDisconnect(ref(db,'extreme/salas/'+cod+'/jugadores/'+yo.id)).remove();
+        }
+        return;
+      }
+    }
+
     /* si la partida ya empezo, todos a la mesa con el MISMO tablero */
     if (s.fase === 'juego' || s.fase === 'colocando'){
       pant('p5');
