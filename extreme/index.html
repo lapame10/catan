@@ -807,8 +807,11 @@ async function coloca(tipo, clave, hexIdx){
       piezas[yo.id].base.push({ k: clave, hex: hexIdx });
     } else {
       /* la Ruta tiene que salir de tu Basecamp recien puesto */
+      /* la Ruta tiene que salir de tu Basecamp recien puesto.
+         OJO: la arista es "a#x1#y1|a#x2#y2" y el vertice "v#x#y".
+         Hay que comparar el vertice ENTERO: a#x#y se convierte en v#x#y. */
       const miBase = piezas[yo.id].base[piezas[yo.id].base.length-1];
-      const toca = miBase && clave.split('|').some(v => v.split('#')[0] === miBase.k);
+      const toca = miBase && clave.split('|').some(ar => ar.replace(/^a#/, 'v#') === miBase.k);
       if (!toca){ aviso('Pega la Ruta a tu Basecamp','La Ruta tiene que salir del Basecamp que acabas de poner.'); return; }
       piezas[yo.id].camino.push({ k: clave, hex: hexIdx, v: clave.split('|') });
     }
