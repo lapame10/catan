@@ -796,7 +796,13 @@ async function coloca(tipo, clave, hexIdx){
             `Toca poner <b>${NOMBRE[s.colocPaso]}</b> antes.`); return;
     }
     const piezas = JSON.parse(JSON.stringify(s.piezas || {}));
-    piezas[yo.id] = piezas[yo.id] || { base:[], hub:[], camino:[] };
+    /* OJO: si ya tienes una pieza, piezas[yo.id] YA EXISTE y no trae las tres
+       listas. Hay que asegurarlas una a una, o .camino queda undefined y
+       revienta al poner la Ruta. */
+    piezas[yo.id] = piezas[yo.id] || {};
+    piezas[yo.id].base   = piezas[yo.id].base   || [];
+    piezas[yo.id].hub    = piezas[yo.id].hub    || [];
+    piezas[yo.id].camino = piezas[yo.id].camino || [];
     const lista = tipo === 'camino' ? piezas[yo.id].camino : piezas[yo.id][tipo];
     if (lista.some(p => p.k === clave)){ aviso('Ya hay algo ahí',''); return; }
 
@@ -865,7 +871,13 @@ async function coloca(tipo, clave, hexIdx){
     return;
   }
   const piezas = JSON.parse(JSON.stringify(s.piezas || {}));
-  piezas[yo.id] = piezas[yo.id] || { base:[], hub:[], camino:[] };
+  /* OJO: si ya tienes una pieza, piezas[yo.id] YA EXISTE y no trae las tres
+       listas. Hay que asegurarlas una a una, o .camino queda undefined y
+       revienta al poner la Ruta. */
+    piezas[yo.id] = piezas[yo.id] || {};
+    piezas[yo.id].base   = piezas[yo.id].base   || [];
+    piezas[yo.id].hub    = piezas[yo.id].hub    || [];
+    piezas[yo.id].camino = piezas[yo.id].camino || [];
   const lista = tipo === 'camino' ? piezas[yo.id].camino : piezas[yo.id][tipo];
   if (lista.some(p => p.k === clave)){ aviso('Ya hay algo ahí',''); return; }
 
