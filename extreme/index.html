@@ -5,298 +5,399 @@
 <title>EXTREME</title>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#1f1510">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<meta name="theme-color" content="#1a1209">
 <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --madera:#2a1d15; --madera2:#3a2a1c; --mar:#12293d;
-    --crema:#f2e8d5; --oro:#e0b877;
-    --fl:#7c4ddb; --fl2:#9d6ef0;
-    --bo:#0e8ba8; --bo2:#2bb8d4;
-    --ri:#4f8f1e; --ri2:#79b93a;
-    --cl:#c1741a; --cl2:#e8a33d;
-    --ju:#c73b34; --ju2:#ef6b5e;
-  }
+  :root{--oro:#e8c87a;--oro2:#a8802f;--crema:#f2e8d5;--dim:#a98f68}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{margin:0;padding-top:env(safe-area-inset-top,0px);
-    background:linear-gradient(180deg,var(--madera2),var(--madera) 60%);
-    color:var(--crema);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-    overscroll-behavior:none}
-  body{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 16px)}
+  html,body{margin:0;padding-top:env(safe-area-inset-top,0px);color:var(--crema);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    overscroll-behavior:none;min-height:100vh;overflow-x:hidden}
+  body{background-color:#1a1209;background-image:url('cuero.jpg');
+    background-size:240px auto;background-repeat:repeat;
+    padding-bottom:calc(env(safe-area-inset-bottom,0px) + 22px)}
+  body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:radial-gradient(ellipse at 50% 30%, rgba(26,17,9,.18) 0%,
+      rgba(14,9,4,.55) 60%, rgba(8,5,2,.78) 100%)}
+  .env{position:relative;z-index:2;max-width:420px;margin:0 auto;padding:16px 16px 0}
 
-  header{text-align:center;padding:16px 18px 8px}
-  header h1{margin:0;font-family:'Anton',sans-serif;font-size:34px;letter-spacing:2.5px;
-    background:linear-gradient(180deg,#fff5e0,#e0b877);-webkit-background-clip:text;
-    -webkit-text-fill-color:transparent}
-  header .sub{font-size:9px;letter-spacing:3.6px;color:#b99a6e;font-weight:800;margin-top:4px;text-transform:uppercase}
+  /* ===== LA ROSA DE LOS VIENTOS, grande y detras ===== */
+  .brujula-fondo{position:absolute;left:50%;width:118%;max-width:520px;aspect-ratio:1;
+    transform:translateX(-50%);pointer-events:none;z-index:1;opacity:.16}
+  .brujula-fondo svg{width:100%;height:100%;display:block}
 
-  .mapa{width:100%;max-width:470px;margin:6px auto 0;display:block;padding:0 8px}
-  .hex{cursor:pointer}
-  .hex:active{filter:brightness(1.12)}
-  .tierra{stroke:#1a1009;stroke-width:2.4;stroke-linejoin:round}
-  .relieve{opacity:.14}
-  .ico-mapa{pointer-events:none}
+  /* ===== LOGO tallado ===== */
+  header{text-align:center;position:relative;padding:14px 0 4px}
+  header .esc{display:flex;align-items:center;justify-content:center;gap:15px}
+  header h1{margin:0;font-family:'Anton',sans-serif;font-size:40px;letter-spacing:2.5px;
+    background:linear-gradient(180deg,#fff6de 0%,#e6c88a 30%,#b08a3c 55%,#7a5a1c 78%,#c9a558 100%);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    filter:drop-shadow(0 2px 0 rgba(60,40,10,.9)) drop-shadow(0 3px 3px rgba(0,0,0,.75))
+      drop-shadow(0 0 14px rgba(232,200,122,.22))}
+  header .sub{font-size:8.5px;letter-spacing:3.4px;color:#c9a558;font-weight:800;
+    margin-top:8px;text-transform:uppercase;text-shadow:0 1px 3px rgba(0,0,0,.9)}
+  .esc .ic{width:30px;height:30px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.8))}
 
-  /* EL NUMERO: sin circulo, esquina superior derecha, tipografia ANTON,
-     blanco con contorno oscuro para que se lea sobre la ilustracion */
-  .num text{font-family:'Anton',sans-serif;font-size:19px;fill:#fff;
-    text-anchor:middle;dominant-baseline:central;
-    paint-order:stroke;stroke:#1a1009;stroke-width:3.2;stroke-linejoin:round}
-  .num.alto text{fill:#ff6b60}
-  .num .pip{fill:#fff;stroke:#1a1009;stroke-width:1;stroke-linejoin:round}
+  .pant{display:none}.pant.on{display:block;position:relative}
 
-  /* SPOTS legendarios: marcadores en el marco */
-  .spot{cursor:pointer}
-  .spot .pl{fill:rgba(20,14,8,.88);stroke:var(--oro);stroke-width:1.6}
+  /* ===== ROTULO biselado con remaches ===== */
+  .rotul{display:inline-block;position:relative;padding:7px 26px;border-radius:5px;
+    font-size:9.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#2b1f07;
+    background-image:url('laton.jpg');background-size:cover;background-position:center;
+    border:1px solid rgba(90,66,20,.9);clip-path:polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px);
+    box-shadow:0 1px 0 rgba(255,250,225,.65) inset, 0 -2px 6px rgba(60,38,5,.5) inset,
+      0 2px 5px rgba(0,0,0,.65);text-shadow:0 1px 0 rgba(255,250,220,.55)}
+  .rotul::before,.rotul::after{content:'';position:absolute;top:50%;width:5px;height:5px;
+    border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff0c8,#8a6a24);
+    transform:translateY(-50%);box-shadow:0 1px 2px rgba(0,0,0,.7)}
+  .rotul::before{left:9px}.rotul::after{right:9px}
+  .etiq{text-align:center;margin:16px 0 7px}
 
-  .pie{max-width:470px;margin:2px auto 0;padding:0 18px}
-  #detalle{display:none}
-  #detalle.show{display:block}
-  .carta{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
-    border-radius:14px;padding:12px 15px;display:flex;align-items:center;gap:12px}
-  .carta .min{width:42px;height:42px;border-radius:50%;flex:0 0 auto;
-    display:flex;align-items:center;justify-content:center}
-  .carta .min svg{width:64%;height:64%}
-  .carta .cn{font-family:'Anton',sans-serif;font-size:15px;letter-spacing:.6px}
-  .carta .cs{font-size:11.5px;color:#b99a6e;margin-top:3px;line-height:1.45}
+  /* ===== EL CAMPO: panel de MADERA con marco dorado ===== */
+  input{width:100%;border-radius:13px;padding:16px;font-size:17px;font-family:inherit;
+    background-color:#4a3520;background-image:url('madera.jpg');
+    background-size:cover;background-position:center;background-blend-mode:normal;
+    border:none;color:#f0e2c4;margin:0;text-align:center;outline:none;
+    box-shadow:0 0 0 3px #6d4f14, 0 0 0 5px #c9a558, 0 0 0 6.5px #2a1d09,
+      0 2px 0 rgba(255,235,200,.22) inset, 0 -5px 14px rgba(0,0,0,.62) inset,
+      0 5px 14px rgba(0,0,0,.55);
+    text-shadow:0 2px 3px rgba(0,0,0,.8)}
+  input:focus{box-shadow:0 0 0 3px #8a6a24, 0 0 0 5.5px #f0d899, 0 0 0 7px #2a1d09,
+    0 2px 0 rgba(255,235,200,.28) inset, 0 -5px 14px rgba(0,0,0,.62) inset,
+    0 0 20px rgba(232,200,122,.4)}
+  input::placeholder{color:#c2a878}
+  input.codigo{font-family:'Anton',sans-serif;font-size:30px;letter-spacing:9px;text-transform:uppercase}
 
-  #dados{display:flex;gap:16px;justify-content:center;margin:16px 0 6px}
-  .dado{width:56px;height:56px;border-radius:12px;position:relative;
-    background:linear-gradient(150deg,#fdfaf3,#e4d9bf);box-shadow:0 4px 0 rgba(0,0,0,.4)}
-  .dado.tirando{animation:g .5s cubic-bezier(.3,.8,.4,1)}
-  @keyframes g{0%{transform:rotate(0)}45%{transform:rotate(200deg) scale(1.13)}100%{transform:rotate(360deg)}}
-  .punto{position:absolute;width:10px;height:10px;border-radius:50%;background:#2b3542}
-  .punto.tl{left:11px;top:11px}.punto.tr{right:11px;top:11px}
-  .punto.ml{left:11px;top:50%;transform:translateY(-50%)}.punto.mr{right:11px;top:50%;transform:translateY(-50%)}
-  .punto.bl{left:11px;bottom:11px}.punto.br{right:11px;bottom:11px}
-  .punto.mc{left:50%;top:50%;transform:translate(-50%,-50%)}
-  #total{text-align:center;font-family:'Anton',sans-serif;font-size:14px;color:#b99a6e;
-    margin-top:8px;min-height:21px;letter-spacing:.4px}
-  #total b{color:var(--oro);font-size:20px}
+  /* ===== LOS MEDALLONES, EN CIRCULO sobre la brujula ===== */
+  .aro{position:relative;width:100%;max-width:330px;margin:8px auto 0;aspect-ratio:1}
+  .aro .centro{position:absolute;left:50%;top:50%;width:112%;height:112%;
+    transform:translate(-50%,-50%);pointer-events:none;opacity:.5}
+  .aro .centro svg{width:100%;height:100%;display:block}
+  .med{position:absolute;width:88px;height:88px;border-radius:50%;cursor:pointer;
+    transform:translate(-50%,-50%) scale(1);transition:transform .15s;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+    box-shadow:0 0 0 3px #2a1d12, 0 0 0 6px #c9a558, 0 0 0 8px #3a2a10,
+      0 6px 14px rgba(0,0,0,.7), 0 0 16px rgba(201,165,88,.22)}
+  .med img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+  .med .velo{position:absolute;inset:0;border-radius:50%;
+    background:radial-gradient(circle at 34% 26%, rgba(255,255,255,.28), transparent 55%)}
+  .med .col{position:absolute;inset:0;border-radius:50%;mix-blend-mode:soft-light}
+  .med:active{transform:translate(-50%,-50%) scale(.94)}
+  .med.sel{transform:translate(-50%,-50%) scale(1.17);
+    box-shadow:0 0 0 3px #2a1d12, 0 0 0 7px #f0d899, 0 0 0 9px #6d4f14,
+      0 0 24px rgba(240,216,153,.8), 0 8px 18px rgba(0,0,0,.7)}
+  .med.ocupado{opacity:.25;pointer-events:none;filter:grayscale(.8)}
+  /* 6 posiciones en circulo */
+  .med.p0{left:50%;top:6%}
+  .med.p1{left:88%;top:29%}
+  .med.p2{left:88%;top:72%}
+  .med.p3{left:50%;top:95%}
+  .med.p4{left:12%;top:72%}
+  .med.p5{left:12%;top:29%}
 
-  .fila{display:flex;gap:9px;justify-content:center;margin-top:12px;flex-wrap:wrap}
-  .btn{border:none;border-radius:12px;padding:12px 18px;font-family:'Anton',sans-serif;font-size:14px;
-    letter-spacing:.8px;cursor:pointer;color:#241a12;
-    background:linear-gradient(180deg,#f0d093,#d9a94f);box-shadow:0 3px 0 rgba(0,0,0,.35)}
-  .btn:active{transform:translateY(1px)}
-  .btn.alt{background:rgba(255,255,255,.09);color:var(--crema);border:1px solid rgba(255,255,255,.18);box-shadow:none}
-  .nota{text-align:center;font-size:10.5px;color:#8a7057;margin-top:14px;line-height:1.55}
+  /* ===== EL CINTURON CLARO con cosido y hebilla ===== */
+  .btn{width:100%;border:none;border-radius:8px;padding:17px 66px 17px 20px;cursor:pointer;
+    font-family:'Anton',sans-serif;font-size:16px;letter-spacing:1.6px;color:#2a1d06;
+    margin-top:13px;position:relative;text-align:center;
+    background-image:url('laton.jpg');background-size:180px auto;background-position:center;
+    background-color:#d8b878;background-blend-mode:screen;
+    box-shadow:0 2px 0 rgba(255,250,225,.75) inset, 0 -4px 10px rgba(70,48,10,.45) inset,
+      0 5px 0 #5a4212, 0 8px 16px rgba(0,0,0,.62);
+    text-shadow:0 1px 0 rgba(255,250,225,.65)}
+  /* el cosido de los bordes */
+  .btn::before{content:'';position:absolute;inset:4px;border-radius:5px;pointer-events:none;
+    border:1.5px dashed rgba(90,66,20,.55)}
+  /* la hebilla */
+  .btn::after{content:'';position:absolute;right:16px;top:50%;transform:translateY(-50%);
+    width:31px;height:31px;border-radius:7px;
+    background-image:url('laton.jpg');background-size:cover;
+    border:2px solid #c9a558;
+    box-shadow:0 1px 0 rgba(255,250,225,.8) inset, 0 -3px 6px rgba(60,38,5,.6) inset,
+      0 3px 6px rgba(0,0,0,.7)}
+  .btn:active{transform:translateY(3px);
+    box-shadow:0 2px 0 rgba(255,250,225,.6) inset, 0 -4px 10px rgba(70,48,10,.55) inset,
+      0 2px 0 #5a4212, 0 4px 9px rgba(0,0,0,.6)}
+  .btn.alt{background-image:url('laton.jpg');background-size:220px auto;
+    background-position:center;background-color:#d8b878;background-blend-mode:screen;
+    color:#2a1d06;font-size:14px;padding:13px 56px 13px 16px;
+    text-shadow:0 1px 0 rgba(255,252,235,.85);
+    box-shadow:0 1px 0 rgba(255,250,225,.7) inset, 0 -3px 8px rgba(70,48,10,.45) inset,
+      0 3px 0 #4a3410, 0 5px 11px rgba(0,0,0,.55)}
+  .btn.alt::after{width:23px;height:23px;right:14px;border-width:1.5px}
+  .btn:disabled{opacity:.5;filter:saturate(.6)}
+
+  .pie{text-align:center;font-size:10px;color:var(--dim);margin-top:15px;line-height:1.6;
+    text-shadow:0 1px 3px rgba(0,0,0,.9)}
+
+  /* el codigo de sala, sobre madera */
+  .sala{background-image:url('madera.jpg');background-size:cover;background-position:center;
+    border-radius:15px;padding:16px;text-align:center;margin-bottom:12px;
+    box-shadow:0 3px 0 rgba(255,235,200,.22) inset, 0 -6px 16px rgba(0,0,0,.62) inset,
+      0 0 0 3px #1a1009, 0 0 0 5px rgba(201,165,88,.55), 0 8px 20px rgba(0,0,0,.6)}
+  .sala .cod{font-family:'Anton',sans-serif;font-size:46px;letter-spacing:12px;padding-left:12px;
+    background:linear-gradient(180deg,#fff6de,#c9a558 60%,#8f6f2c);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    filter:drop-shadow(0 2px 2px rgba(0,0,0,.85))}
+  .sala .mini{font-size:10px;color:#c2a878;text-shadow:0 1px 2px rgba(0,0,0,.8)}
+
+  .jug{display:flex;align-items:center;gap:11px;border-radius:12px;padding:10px 13px;margin-bottom:7px;
+    background-image:url('madera.jpg');background-size:cover;background-position:center 45%;
+    box-shadow:0 1px 0 rgba(255,235,200,.18) inset, 0 -4px 10px rgba(0,0,0,.55) inset,
+      0 0 0 2px #1a1009, 0 0 0 3.5px rgba(201,165,88,.5), 0 4px 9px rgba(0,0,0,.5)}
+  .jug .p{width:26px;height:26px;border-radius:50%;flex:0 0 auto;overflow:hidden;
+    box-shadow:0 0 0 2px #2a1d12, 0 0 0 3.5px #c9a558}
+  .jug .p img{width:100%;height:100%;object-fit:cover}
+  .jug .n{font-weight:800;font-size:14.5px;flex:1;text-shadow:0 2px 3px rgba(0,0,0,.8)}
+  .jug .y{font-size:8.5px;font-weight:800;letter-spacing:1px;color:#2a1d06;
+    background-image:url('laton.jpg');background-size:cover;border-radius:20px;padding:3px 9px}
+  .vacio{text-align:center;font-size:12px;color:var(--dim);padding:12px;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+
+  /* la brujula de la esquina */
+  .brujula-esq{position:fixed;right:10px;bottom:calc(env(safe-area-inset-bottom,0px) + 8px);
+    width:74px;height:74px;z-index:3;pointer-events:none;opacity:.9;
+    filter:drop-shadow(0 3px 6px rgba(0,0,0,.7))}
+
+  .err{background:rgba(120,30,20,.55);border:1px solid rgba(220,120,90,.7);color:#ffd5c8;
+    border-radius:9px;padding:10px;font-size:12px;text-align:center;margin-top:10px;display:none;
+    text-shadow:0 1px 2px rgba(0,0,0,.8)}
+  .err.on{display:block}
 </style>
 </head>
 <body>
 
-<header>
-  <h1>EXTREME</h1>
-  <div class="sub">Explore · Ride · Climb · Fly · Jump</div>
-</header>
-
-<div class="mapa"><svg id="tablero" viewBox="0 0 466 500"></svg></div>
-
-<div class="pie">
-  <div id="detalle"><div class="carta" id="carta"></div></div>
-  <div id="dados"></div>
-  <div id="total">Toca «Tirar los dados»</div>
-  <div class="fila">
-    <button class="btn" id="tirar">🎲 Tirar los dados</button>
-    <button class="btn alt" id="nuevo">Nuevo mundo</button>
-  </div>
-  <div class="nota" id="nota">19 hexágonos · 18 discos · 5 deportes</div>
+<!-- la brujula grande del fondo -->
+<div class="brujula-fondo" style="top:60px">
+  <svg viewBox="0 0 200 200"><g fill="none" stroke="#f0d8a8" stroke-width="1.3">
+    <circle cx="100" cy="100" r="92"/><circle cx="100" cy="100" r="72"/><circle cx="100" cy="100" r="52"/>
+    <path d="M100 4 L112 86 L196 100 L112 114 L100 196 L88 114 L4 100 L88 86 Z"/>
+    <path d="M44 44 L86 86 M156 44 L114 86 M156 156 L114 114 M44 156 L86 114"/>
+    <path d="M100 34 L107 93 L166 100 L107 107 L100 166 L93 107 L34 100 L93 93 Z"/>
+  </g></svg>
 </div>
 
-<script>
-/* ============================================================================
-   EXTREME — tablero
-   Numeros: sin circulo, esquina superior derecha, tipografia ANTON, con los
-   puntitos de probabilidad (un 6 sale 5 veces mas que un 2).
-   ============================================================================ */
+<div class="env">
+  <header>
+    <div class="esc">
+      <svg class="ic" viewBox="0 0 32 32" fill="none" stroke="#c9a558" stroke-width="2" stroke-linejoin="round">
+        <path d="M3 27 L16 5 L29 27 Z"/><path d="M16 5 L16 27"/><path d="M11 27 L16 17 L21 27"/></svg>
+      <h1>EXTREME</h1>
+      <svg class="ic" viewBox="0 0 32 32" fill="none" stroke="#c9a558" stroke-width="2" stroke-linejoin="round">
+        <path d="M8 19 q-5 0 -5 -4 q0 -4 4.5 -4 q1 -5 6.5 -5 q5.5 0 6.5 5 q5 0 5 4 q0 4 -4.5 4 Z"/>
+        <path d="M15 21 L11 28 L15 28 L12.5 32 L20 24 L15.5 24 L18 21 Z" stroke-width="1.6"/></svg>
+    </div>
+    <div class="sub">Explore · Ride · Climb · Fly · Jump</div>
+  </header>
 
-const DEPORTES = {
-  flight:{n:'FLIGHT', col:'#7c4ddb', col2:'#9d6ef0', terr:'Cordillera',    hace:'Parapente · parakite · ala delta'},
-  board: {n:'BOARD',  col:'#0e8ba8', col2:'#2bb8d4', terr:'Costa y nieve', hace:'Surf · snowboard · sandboard'},
-  ride:  {n:'RIDE',   col:'#4f8f1e', col2:'#79b93a', terr:'Laderas',       hace:'Enduro · MTB · moto'},
-  climb: {n:'CLIMB',  col:'#c1741a', col2:'#e8a33d', terr:'Paredes',       hace:'Escalada · alpinismo'},
-  jump:  {n:'JUMP',   col:'#c73b34', col2:'#ef6b5e', terr:'Cumbres',       hace:'Paracaidismo · BASE · wingsuit'},
-  nofly: {n:'NO FLY', col:'#6b5b48', col2:'#8a7962', terr:'Día sin vuelo', hace:'Aquí empieza el mal tiempo'},
-};
+  <!-- 1 ENTRADA -->
+  <div class="pant on" id="p1" style="margin-top:20px">
+    <button class="btn" id="bCrear">ABRIR LA SALA</button>
+    <button class="btn alt" id="bUnir">ENTRAR CON UN CÓDIGO</button>
+    <div class="pie">De 2 a 6 pilotos · cada uno en su teléfono</div>
+  </div>
 
-const ICONOS = {
-  flight:`<g fill="#fff"><path d="M4 20 Q20 4 36 20 Q28 15 20 15 Q12 15 4 20 Z"/>
-    <path d="M20 15 L20 24 M16 15 L11 25 M24 15 L29 25" stroke="#fff" stroke-width="1.3" fill="none"/>
-    <circle cx="20" cy="27" r="3.4"/></g>`,
-  board:`<g fill="#fff"><path d="M3 30 Q9 14 21 13 Q31 12 34 21 Q27 26 19 25 Q9 24 3 30 Z"/>
-    <ellipse cx="21" cy="30" rx="9" ry="2.6" transform="rotate(-14 21 30)"/></g>`,
-  ride:`<g fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round">
-    <circle cx="10" cy="27" r="7"/><circle cx="30" cy="27" r="7"/>
-    <path d="M10 27 L19 16 L27 16 M19 16 L24 27 M27 16 L30 27 M16 16 L23 16"/></g>`,
-  climb:`<g fill="#fff"><path d="M4 34 L20 6 L36 34 Z"/></g>
-    <path d="M20 6 L20 34" stroke="rgba(0,0,0,.35)" stroke-width="1.4"/>`,
-  jump:`<g fill="#fff"><path d="M20 16 Q6 20 3 30 Q12 27 20 27 Q28 27 37 30 Q34 20 20 16 Z"/>
-    <circle cx="20" cy="11" r="4"/></g>`,
-  nofly:`<g fill="#fff"><path d="M20 6 L30 16 L26 16 L26 30 L14 30 L14 16 L10 16 Z"/></g>`,
-};
+  <!-- 2 CREAR -->
+  <div class="pant" id="p3" style="margin-top:14px">
+    <div class="err" id="err3"></div>
+    <div class="etiq"><span class="rotul">Tu nombre</span></div>
+    <input id="inNom1" placeholder="Tu nombre" autocomplete="off" maxlength="12">
+    <div class="etiq" style="margin-top:18px"><span class="rotul">Tu color</span></div>
+    <div class="aro" id="aro1"></div>
+    <button class="btn" id="bAbrir">ABRIR LA SALA</button>
+    <button class="btn alt" id="bAtras3">Atrás</button>
+  </div>
 
-/* Las ilustraciones. Las que ya tenemos puestas; el resto usa su color. */
-const FOTOS = {
-  flight:'arte/hex_cordillera.png',
-  board:'arte/hex_costa.png',
-  ride:'arte/hex_laderas.png',
-  climb:'arte/hex_pared.png',
-  jump:'arte/hex_cumbres.png',
-  nofly:'arte/hex_nofly.png'
-};
+  <!-- 3 UNIRSE -->
+  <div class="pant" id="p2" style="margin-top:14px">
+    <div class="err" id="err2"></div>
+    <div class="etiq"><span class="rotul">Código de la partida</span></div>
+    <input class="codigo" id="inCod" maxlength="4" placeholder="ABCD" autocomplete="off" autocapitalize="characters">
+    <div class="etiq" style="margin-top:16px"><span class="rotul">Tu nombre</span></div>
+    <input id="inNom2" placeholder="Tu nombre" autocomplete="off" maxlength="12">
+    <div class="etiq" style="margin-top:16px"><span class="rotul">Tu color</span></div>
+    <div class="aro" id="aro2" style="max-width:280px"></div>
+    <button class="btn" id="bEntrar">ENTRAR</button>
+    <button class="btn alt" id="bAtras2">Atrás</button>
+  </div>
 
-const MAZO = [...Array(4).fill('flight'), ...Array(4).fill('board'), ...Array(4).fill('climb'),
-              ...Array(3).fill('ride'), ...Array(3).fill('jump'), 'nofly'];
-const NUMS = [2,3,3,4,4,5,5,6,6,8,8,9,9,10,10,11,11,12];
-const PIPS = {2:1,3:2,4:3,5:4,6:5,8:5,9:4,10:3,11:2,12:1};
-const COLS = [3,4,5,4,3];
-const SPOTS = [
-  {n:'THE SUMMIT',         c:'CLIMB + FLIGHT', pa:'+1 PA'},
-  {n:'WINGSUIT MOUNTAIN',  c:'CLIMB + JUMP',   pa:'+1 PA'},
-  {n:'THE BIG WAVE',       c:'BOARD + RIDE',   pa:'+1 PA'},
-  {n:'SOARING DUNES',      c:'FLIGHT + BOARD', pa:'+1 PA'},
-  {n:'ALPINE LAUNCH',      c:'CLIMB + FLIGHT', pa:'+1 PA'},
-  {n:'VOLCANO EXPEDITION', c:'LOS CUATRO',     pa:'+2 PA'},
+  <!-- 4 SALA -->
+  <div class="pant" id="p4" style="margin-top:14px">
+    <div class="sala">
+      <div class="mini">Código de la partida</div>
+      <div class="cod" id="codGrande">····</div>
+      <div class="mini" id="cuantos">esperando pilotos…</div>
+    </div>
+    <button class="btn alt" id="bLink">📤 COMPARTIR EL LINK</button>
+    <div class="etiq"><span class="rotul">Pilotos</span></div>
+    <div id="lista" style="margin-top:10px"></div>
+    <button class="btn" id="bEmpezar" disabled>FALTAN PILOTOS</button>
+    <div class="pie" id="notaEsp"></div>
+  </div>
+</div>
+
+<!-- la brujula de la esquina -->
+<div class="brujula-esq">
+  <svg viewBox="0 0 100 100"><g fill="none" stroke="#c9a558" stroke-width="2">
+    <circle cx="50" cy="46" r="34"/><circle cx="50" cy="46" r="27" stroke-width="1.2"/>
+    <path d="M50 12 L56 40 L84 46 L56 52 L50 80 L44 52 L16 46 L44 40 Z" fill="#c9a558" opacity=".85"/>
+    <path d="M50 22 L53 43 L74 46 L53 49 L50 70 L47 49 L26 46 L47 43 Z" fill="#7a5a1c"/>
+    <circle cx="50" cy="46" r="4" fill="#e8c87a"/>
+    <path d="M50 80 L50 88 M42 92 q8 -6 16 0" stroke-width="2.6"/>
+  </g></svg>
+</div>
+
+<script type="module">
+/* ==========================================================================
+   EXTREME — Fase 1: la sala
+   Medallones EN CIRCULO alrededor de la rosa de los vientos, hechos con las
+   ilustraciones del juego. Materiales: cuero (fondo), madera (campos), laton.
+   ========================================================================== */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, onValue, onDisconnect, update }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const app = initializeApp({ databaseURL: "https://plan-gym-8aff7-default-rtdb.firebaseio.com" });
+const db  = getDatabase(app);
+
+/* las 6 ilustraciones del juego (las tarjetas), una por color */
+/* LOS MEDALLONES de Pam: cada color lleva su ilustracion en cristal, con su
+   marco de metal. Van DENTRO del aro dorado que dibuja la app. */
+const COLORES = [
+  { id:'rojo',    n:'Rojo',    c:'#d24c3a', img:'arte/med_1.png' },  // parapente sobre las crestas
+  { id:'azul',    n:'Azul',    c:'#4a9fd8', img:'arte/med_3.png' },  // el refugio nevado
+  { id:'verde',   n:'Verde',   c:'#6fb04a', img:'arte/med_5.png' },  // enduro en el bosque
+  { id:'morado',  n:'Morado',  c:'#a878e0', img:'arte/med_2.png' },  // la nube y el rayo
+  { id:'marron',  n:'Marrón',  c:'#c99a5e', img:'arte/med_4.png' },  // la torre y el aguila
+  { id:'gris',    n:'Gris',    c:'#a8a49c', img:'arte/med_6.png' },  // las tiendas bajo la luna
 ];
 
-const R = 46, RX = 1.5*R, RY = Math.sqrt(3)*R, CX = 233, CY = 250;
+const $ = id => document.getElementById(id);
+const pant = n => ['p1','p2','p3','p4'].forEach(p => $(p).classList.toggle('on', p === n));
+const err = (id, txt) => { const e = $(id); e.textContent = txt; e.classList.add('on');
+                            setTimeout(() => e.classList.remove('on'), 3600); };
+let yo = null, salaCod = null, esAnfitrion = false, oyente = null;
 
-function revuelve(a){
-  const r = a.slice();
-  for (let i = r.length-1; i>0; i--){ const j = Math.floor(Math.random()*(i+1)); [r[i],r[j]]=[r[j],r[i]]; }
-  return r;
-}
-function pathHex(cx, cy, k){
-  const rr = R*(k||1), p = [];
-  for (let i=0;i<6;i++){ const a = Math.PI/180*(60*i); p.push([cx+rr*Math.cos(a), cy+rr*Math.sin(a)]); }
-  return p.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1)).join(' ')+' Z';
+/* la brujula que va DETRAS de los medallones */
+const ROSA = `<svg viewBox="0 0 200 200"><g fill="none" stroke="#e8c87a" stroke-width="1.5">
+  <circle cx="100" cy="100" r="94"/><circle cx="100" cy="100" r="78" stroke-width="1"/>
+  <circle cx="100" cy="100" r="60"/><circle cx="100" cy="100" r="30" stroke-width="1"/>
+  <path d="M100 2 L108 92 L198 100 L108 108 L100 198 L92 108 L2 100 L92 92 Z"/>
+  <path d="M40 40 L88 88 M160 40 L112 88 M160 160 L112 112 M40 160 L88 112"/>
+  <path d="M100 26 L105 95 L174 100 L105 105 L100 174 L95 105 L26 100 L95 95 Z"/>
+  </g></svg>`;
+
+function pintaAro(cont, ocupados, elegido, alElegir){
+  const el = $(cont);
+  el.innerHTML = `<div class="centro">${ROSA}</div>` + COLORES.map((c,i) => {
+    const occ = ocupados.includes(c.id), sel = c.id === elegido ? ' sel' : '';
+    return `<div class="med p${i}${occ?' ocupado':''}${sel}" data-c="${c.id}">
+      <img src="${c.img}" alt="">
+      </div>`;
+  }).join('');
+  el.querySelectorAll('.med').forEach(m => m.onclick = () => alElegir(m.dataset.c));
 }
 
-let layout = [];
-function construye(){
-  const mazo = revuelve(MAZO), nums = revuelve(NUMS);
-  layout = []; let k = 0, ni = 0;
-  COLS.forEach((cuantos,c)=>{
-    const cx = CX + (c-2)*RX, y0 = CY - ((cuantos-1)*RY)/2;
-    for (let i=0;i<cuantos;i++){
-      const rec = mazo[k++];
-      layout.push({cx, cy:y0+i*RY, rec, num: rec==='nofly'?null:nums[ni++], id:'c'+c+'_'+i});
-    }
+function nuevoCodigo(){
+  const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  let s = ''; for (let i=0;i<4;i++) s += abc[Math.floor(Math.random()*abc.length)];
+  return s;
+}
+async function leerSala(cod){
+  const snap = await get(ref(db, 'extreme/salas/' + cod));
+  return snap.exists() ? snap.val() : null;
+}
+
+function escuchar(cod){
+  if (oyente) oyente();
+  oyente = onValue(ref(db, 'extreme/salas/' + cod), snap => {
+    const s = snap.val();
+    if (!s){ pant('p1'); return; }
+    const lista = Object.entries(s.jugadores || {}).map(([id,j]) => ({ id, ...j }));
+    $('codGrande').textContent = cod;
+    $('cuantos').textContent = lista.length === 1 ? 'esperando pilotos…' : lista.length + ' pilotos';
+    $('lista').innerHTML = lista.length ? lista.map(j => {
+      const col = COLORES.find(c => c.id === j.color) || COLORES[0];
+      return `<div class="jug">
+        <span class="p"><img src="${col.img}" alt=""></span>
+        <span class="n">${(j.nombre||'').replace(/[<>]/g,'')}</span>
+        ${j.id === s.anfitrion ? '<span class="y">ANFITRIÓN</span>' : ''}</div>`;
+    }).join('') : '<div class="vacio">todavía no hay nadie…</div>';
+    const puedo = esAnfitrion && lista.length >= 2;
+    $('bEmpezar').disabled = !puedo;
+    $('bEmpezar').textContent = esAnfitrion ? (puedo ? 'EMPEZAR' : 'FALTAN PILOTOS')
+      : 'ESPERANDO AL ANFITRIÓN';
+    $('notaEsp').textContent = esAnfitrion
+      ? (puedo ? 'Cuando quieras, dale a EMPEZAR' : 'Hacen falta al menos 2 pilotos')
+      : 'El anfitrión arranca la partida';
   });
 }
 
-function pinta(){
-  const svg = document.getElementById('tablero');
-  const HX = 2*R, HY = Math.sqrt(3)*R;
-  let h = '<defs><radialGradient id="mar" cx="50%" cy="42%" r="74%">' +
-          '<stop offset="0%" stop-color="#1b4560"/><stop offset="100%" stop-color="#0b1a28"/></radialGradient>';
-  Object.keys(DEPORTES).forEach(k=>{
-    const d = DEPORTES[k];
-    h += `<radialGradient id="g${k}" cx="34%" cy="26%" r="78%">
-      <stop offset="0%" stop-color="${d.col2}"/><stop offset="100%" stop-color="${d.col}"/></radialGradient>`;
-  });
-  layout.forEach(hex=>{ h += `<clipPath id="c${hex.id}"><path d="${pathHex(hex.cx,hex.cy)}"/></clipPath>`; });
-  h += '</defs><rect width="466" height="500" fill="url(#mar)"/>';
+$('bCrear').onclick = () => pant('p3');
+$('bUnir').onclick  = () => pant('p2');
+$('bAtras3').onclick = () => pant('p1');
+$('bAtras2').onclick = () => pant('p1');
 
-  layout.forEach(hex=>{
-    const d = DEPORTES[hex.rec];
-    h += `<g class="hex" data-id="${hex.id}">`;
-    const foto = FOTOS[hex.rec];
-    if (foto){
-      // la ilustracion, recortada en hexagono
-      h += `<image href="${foto}" x="${(hex.cx-HX/2).toFixed(1)}" y="${(hex.cy-HY/2).toFixed(1)}"
-             width="${HX.toFixed(1)}" height="${HY.toFixed(1)}" preserveAspectRatio="xMidYMid slice"
-             clip-path="url(#c${hex.id})"/>`;
-    } else {
-      // todavia sin ilustracion: su color
-      h += `<path class="tierra" d="${pathHex(hex.cx,hex.cy)}" fill="url(#g${hex.rec})"/>`;
-      h += `<path class="relieve" d="${pathHex(hex.cx,hex.cy,0.84)}" fill="#fff"/>`;
-      const sc = (R*2*0.78)/40;
-      h += `<g class="ico-mapa" transform="translate(${(hex.cx-20*sc).toFixed(1)},${(hex.cy-20*sc-6).toFixed(1)}) scale(${sc.toFixed(3)})">${ICONOS[hex.rec]}</g>`;
-    }
-    h += `<path d="${pathHex(hex.cx,hex.cy)}" fill="none" class="tierra" stroke-width="2.4"/>`;
-
-    // EL NUMERO — esquina superior derecha, Anton, con puntitos
-    if (hex.num){
-      const alto = (hex.num===6||hex.num===8) ? ' alto' : '';
-      const nx = hex.cx + R*0.54, ny = hex.cy - R*0.36;
-      h += `<g class="num${alto}">`;
-      h += `<text x="${nx.toFixed(1)}" y="${ny.toFixed(1)}">${hex.num}</text>`;
-      const p = PIPS[hex.num], sep = 3.7, x0 = nx - ((p-1)*sep)/2;
-      for (let i=0;i<p;i++){
-        h += `<circle class="pip" cx="${(x0+i*sep).toFixed(1)}" cy="${(ny+12.5).toFixed(1)}" r="1.5"/>`;
-      }
-      h += '</g>';
-    }
-    h += '</g>';
-  });
-
-  // los Spots, en el marco (fuera del tablero)
-  const sitios = [[20,26],[446,26],[20,474],[446,474],[233,14],[233,486]];
-  SPOTS.forEach((s,i)=>{
-    const [x,y] = sitios[i] || [0,0];
-    h += `<g class="spot" data-spot="${i}">`;
-    h += `<circle class="pl" cx="${x}" cy="${y}" r="13"/>`;
-    h += `<text x="${x}" y="${y+5}" text-anchor="middle" dominant-baseline="central"
-           style="font:800 13px -apple-system,sans-serif;fill:#e0b877">★</text>`;
-    h += '</g>';
-  });
-
-  svg.innerHTML = h;
-  svg.querySelectorAll('.hex').forEach(g=>g.addEventListener('click',()=>muestra(g.getAttribute('data-id'))));
-  svg.querySelectorAll('.spot').forEach(g=>g.addEventListener('click',()=>muestraSpot(g.getAttribute('data-spot'))));
-}
-
-function muestra(id){
-  const hex = layout.find(x=>x.id===id); if(!hex) return;
-  const d = DEPORTES[hex.rec];
-  const prob = hex.num ? (PIPS[hex.num]/36*100).toFixed(1) : null;
-  document.getElementById('carta').innerHTML =
-    `<div class="min" style="background:radial-gradient(circle at 35% 28%,${d.col2},${d.col})">
-       <svg viewBox="0 0 40 40">${ICONOS[hex.rec]}</svg></div>
-     <div><div class="cn">${d.terr}${hex.num?' · '+hex.num:''}</div>
-     <div class="cs">${d.hace}${prob?' · produce <b>'+prob+'%</b> de las veces':' · no produce nunca'}</div></div>`;
-  document.getElementById('detalle').classList.add('show');
-}
-function muestraSpot(i){
-  const s = SPOTS[i]; if(!s) return;
-  document.getElementById('carta').innerHTML =
-    `<div class="min" style="background:linear-gradient(135deg,#e0b877,#b8862f)">
-       <span style="font-size:19px">⭐</span></div>
-     <div><div class="cn">${s.n}</div>
-     <div class="cs">Spot legendario · ${s.c} · vale <b>${s.pa}</b></div></div>`;
-  document.getElementById('detalle').classList.add('show');
-}
-
-const CARAS = [[], ['mc'], ['tl','br'], ['tl','mc','br'], ['tl','tr','bl','br'],
-               ['tl','tr','mc','bl','br'], ['tl','tr','ml','mr','bl','br']];
-const cara = n => CARAS[n].map(p=>`<span class="punto ${p}"></span>`).join('');
-function pintaDados(a,b){
-  document.getElementById('dados').innerHTML = `<div class="dado">${cara(a)}</div><div class="dado">${cara(b)}</div>`;
-}
-function tirar(){
-  const d = document.getElementById('dados');
-  d.querySelectorAll('.dado').forEach(x=>{x.classList.remove('tirando'); void x.offsetWidth; x.classList.add('tirando');});
-  document.getElementById('total').innerHTML = '…';
-  setTimeout(()=>{
-    const a = 1+Math.floor(Math.random()*6), b = 1+Math.floor(Math.random()*6);
-    pintaDados(a,b);
-    const t = a+b;
-    document.getElementById('total').innerHTML = 'SALIÓ <b>'+t+'</b>' +
-      (t===7?' — ¡MAL TIEMPO! 🌩️':(t===12?' — ¡DÍA ÉPICO! 🔥':''));
-  },500);
-}
-document.getElementById('tirar').onclick = tirar;
-document.getElementById('nuevo').onclick = ()=>{
-  construye(); pinta();
-  document.getElementById('detalle').classList.remove('show');
-  pintaDados(1,1);
-  document.getElementById('nota').textContent = '19 hexágonos · 18 discos · 5 deportes';
+$('bAbrir').onclick = async () => {
+  const nombre = ($('inNom1').value||'').trim(), color = window._c1;
+  if (!nombre) return err('err3','Pon tu nombre');
+  if (!color)  return err('err3','Elige un color');
+  let cod = nuevoCodigo();
+  for (let i=0;i<6;i++){ if (!(await leerSala(cod))) break; cod = nuevoCodigo(); }
+  const id = 'j' + Date.now() + Math.floor(Math.random()*99);
+  yo = { id, nombre, color };
+  await set(ref(db,'extreme/salas/'+cod), { fase:'lobby', anfitrion:id, creada:Date.now(),
+    jugadores:{ [id]:{ nombre, color } } });
+  await onDisconnect(ref(db,'extreme/salas/'+cod+'/jugadores/'+id)).remove();
+  salaCod = cod; esAnfitrion = true; escuchar(cod); pant('p4');
 };
 
-construye(); pinta(); pintaDados(1,1);
+$('bEntrar').onclick = async () => {
+  const cod = ($('inCod').value||'').trim().toUpperCase();
+  const nombre = ($('inNom2').value||'').trim(), color = window._c2;
+  if (cod.length !== 4) return err('err2','El código tiene 4 letras');
+  if (!nombre) return err('err2','Pon tu nombre');
+  if (!color)  return err('err2','Elige un color');
+  const s = await leerSala(cod);
+  if (!s) return err('err2','No existe esa partida');
+  const lista = Object.values(s.jugadores || {});
+  if (lista.length >= 6) return err('err2','La partida está llena (6)');
+  if (lista.some(j => j.color === color)) return err('err2','Ese color ya está cogido');
+  const id = 'j' + Date.now() + Math.floor(Math.random()*99);
+  yo = { id, nombre, color };
+  await set(ref(db,'extreme/salas/'+cod+'/jugadores/'+id), { nombre, color });
+  await onDisconnect(ref(db,'extreme/salas/'+cod+'/jugadores/'+id)).remove();
+  salaCod = cod; esAnfitrion = (s.anfitrion === id); escuchar(cod); pant('p4');
+};
+
+$('bEmpezar').onclick = async () => {
+  if (!salaCod) return;
+  await update(ref(db,'extreme/salas/'+salaCod), { fase:'juego', empezada:Date.now() });
+  alert('¡La partida va a empezar!\n\nLo siguiente es la Fase 2: el tablero compartido.');
+};
+$('bLink').onclick = async () => {
+  const url = location.origin + location.pathname + '?s=' + salaCod;
+  const txt = 'Juega a EXTREME conmigo: ' + url;
+  if (navigator.share){ try { await navigator.share({ title:'EXTREME', text:txt, url }); return; } catch(e){} }
+  try { await navigator.clipboard.writeText(url); alert('Link copiado:\n' + url); }
+  catch(e){ prompt('Copia el link:', url); }
+};
+
+window._c1 = null; window._c2 = null;
+const el1 = c => { window._c1 = c; pintaAro('aro1', [], c, el1); };
+const el2 = c => { window._c2 = c; pintaAro('aro2', [], c, el2); };
+pintaAro('aro1', [], null, el1);
+pintaAro('aro2', [], null, el2);
+
+const q = new URLSearchParams(location.search).get('s');
+if (q && q.length === 4){
+  $('inCod').value = q.toUpperCase(); pant('p2');
+  leerSala(q.toUpperCase()).then(s => {
+    if (s){
+      const occ = Object.values(s.jugadores||{}).map(j => j.color);
+      const e2 = c => { window._c2 = c; pintaAro('aro2', occ, c, e2); };
+      pintaAro('aro2', occ, null, e2);
+    }
+  });
+}
 </script>
 </body>
 </html>
