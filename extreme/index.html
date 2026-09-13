@@ -945,13 +945,13 @@ function pintaPartida(s){
       });
       for (let i=0;i<6;i++){
         const a = pts[i], b = pts[(i+1)%6];
-        const k = `a#${a[0].toFixed(1)},${a[1].toFixed(1)}#${b[0].toFixed(1)},${b[1].toFixed(1)}`;
+        /* el MISMO formato que usa el dibujo: a#x1#y1|a#x2#y2 (sin comas) */
+        const k = `a#${a[0].toFixed(1)}#${a[1].toFixed(1)}|a#${b[0].toFixed(1)}#${b[1].toFixed(1)}`;
         if (!A[k]) A[k] = { a, b, hex: idx };
       }
     });
     if (modo === 'camino'){
-      Object.entries(A).forEach(([k, x]) => {
-        const kk = `a#${x.a[0].toFixed(1)}#${x.a[1].toFixed(1)}|a#${x.b[0].toFixed(1)}#${x.b[1].toFixed(1)}`;
+      Object.entries(A).forEach(([kk, x]) => {
         h += `<line class="toque" data-t="camino" data-k="${kk}" data-h="${x.hex}"
                x1="${x.a[0]}" y1="${x.a[1]}" x2="${x.b[0]}" y2="${x.b[1]}"
                stroke="rgba(240,216,153,.85)" stroke-width="5" stroke-linecap="round"
