@@ -291,7 +291,7 @@
     <!-- TUS RECURSOS -->
     <div class="recursos" id="recursos"></div>
 
-    <div class="mapa"><svg id="tablero" viewBox="-34 -30 534 566"></svg></div>
+    <div class="mapa"><svg id="tablero" viewBox="0 0 480 620"></svg></div>
     <div class="fichaInfo" id="info"></div>
     <div class="err" id="err5"></div>
 
@@ -481,7 +481,10 @@ const MAZO = [...Array(4).fill('flight'), ...Array(4).fill('board'), ...Array(4)
 const NUMS = [2,3,3,4,4,5,5,6,6,8,8,9,9,10,10,11,11,12];
 const PIPS = {2:1,3:2,4:3,5:4,6:5,8:5,9:4,10:3,11:2,12:1};
 const COLS = [3,4,5,4,3];
-const R = 46, RX = 1.5*R, RY = Math.sqrt(3)*R, CX = 233, CY = 250;
+/* ===== GEOMETRIA DEL PANAL (igual que el tablero) =====
+   Hexagonos DE PUNTA: ancho raiz(3)*R, alto 2R. Las columnas van a raiz(3)*R
+   y las impares media ficha mas abajo. */
+const R = 46, RX = Math.sqrt(3)*R, RY = 2*R, CX = 240, CY = 305;
 
 function revuelve(a){
   const r = a.slice();
@@ -490,9 +493,9 @@ function revuelve(a){
 }
 function pathHex(cx, cy){
   const p = [];
-  /* +30 = hexagono FLAT-TOP (plano arriba). Con las columnas a 1.5R, asi encaja
-     como un panal sin dejar huecos. Sin el +30 iba de punta y no pegaba nunca. */
-  for (let i=0;i<6;i++){ const a=Math.PI/180*(60*i+30); p.push([cx+R*Math.cos(a), cy+R*Math.sin(a)]); }
+  /* DE PUNTA (pointy-top): el vertice a 0 grados apunta a la derecha, y el de
+     -90 arriba. Asi las columnas caen a raiz(3)*R y encajan como el tablero. */
+  for (let i=0;i<6;i++){ const a=Math.PI/180*(60*i-90); p.push([cx+R*Math.cos(a), cy+R*Math.sin(a)]); }
   return p.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1)).join(' ')+' Z';
 }
 /* el tablero se genera UNA vez (el anfitrion) y se guarda en la sala:
@@ -516,38 +519,6 @@ function pintaTablero(hexes){
   /* flat-top: el ancho es raiz(3)*R y el alto 2R. Los tenia al reves. */
   const HX = Math.sqrt(3)*R, HY = 2*R;
 
-  /* ===== EL MAR: un fondo azul con sus rutas punteadas y las anclas ===== */
-  let mar = `<rect x="-40" y="-40" width="560" height="580" fill="#0d3d5c"/>`;
-  /* el oleaje suave del agua */
-  for (let i=0;i<26;i++){
-    const xx = -30 + (i*23)%520, yy = -30 + ((i*37)%540);
-    mar += `<ellipse cx="${xx}" cy="${yy}" rx="${18+ (i%3)*9}" ry="${3+(i%2)*2}"
-             fill="rgba(120,200,240,.045)"/>`;
-  }
-  /* las rutas maritimas: lineas punteadas que salen del borde de la isla */
-  mar += `<g stroke="#e8dcc0" stroke-width="1.6" stroke-dasharray="5 6" opacity=".5" fill="none">`;
-  [[0,1,120],[1,1,150],[2,1,110],[3,1,130],[4,1,160]].forEach(([c,i,_]) => {
-    const p = posHex(c,i); if (!p) return;
-    const ang = Math.atan2(p.cy-CY, p.cx-CX);
-    mar += `<line x1="${(p.cx+R*1.4*Math.cos(ang)).toFixed(0)}" y1="${(p.cy+R*1.4*Math.sin(ang)).toFixed(0)}"
-             x2="${(p.cx+R*4.2*Math.cos(ang)).toFixed(0)}" y2="${(p.cy+R*4.2*Math.sin(ang)).toFixed(0)}"/>`;
-  });
-  mar += `</g>`;
-  /* los outposts: el ancla de cada puerto */
-  mar += `<g fill="none" stroke="#e8dcc0" stroke-width="2" opacity=".85">`;
-  [[0,1],[1,1],[2,1],[3,1],[4,1]].forEach(([c,i]) => {
-    const p = posHex(c,i); if (!p) return;
-    const ang = Math.atan2(p.cy-CY, p.cx-CX);
-    const ox = p.cx + R*3.1*Math.cos(ang), oy = p.cy + R*3.1*Math.sin(ang);
-    mar += `<circle cx="${ox.toFixed(0)}" cy="${oy.toFixed(0)}" r="15" fill="#0d3d5c" opacity=".9"/>
-      <circle cx="${ox.toFixed(0)}" cy="${(oy-4).toFixed(0)}" r="4.5"/>
-      <path d="M${ox.toFixed(0)} ${(oy-9).toFixed(0)} L${ox.toFixed(0)} ${(oy+7).toFixed(0)}
-               M${(ox-7).toFixed(0)} ${(oy+2).toFixed(0)} Q${ox.toFixed(0)} ${(oy+10).toFixed(0)} ${(ox+7).toFixed(0)} ${(oy+2).toFixed(0)}"
-               stroke-linecap="round"/>`;
-  });
-  mar += `</g>`;
-
-  /* la rosa de los vientos detras del panal */
   const ROSA_TAB = `<g opacity="0.13" fill="none" stroke="#e8c87a" stroke-width="1.2">
     <circle cx="${CX}" cy="${CY}" r="215"/><circle cx="${CX}" cy="${CY}" r="185" stroke-width=".8"/>
     <circle cx="${CX}" cy="${CY}" r="120" stroke-width=".8"/>
@@ -557,7 +528,7 @@ function pintaTablero(hexes){
              M${CX+150} ${CY+150} L${CX+14} ${CY+14} M${CX-150} ${CY+150} L${CX-14} ${CY+14}"/>
   </g>`;
 
-  let h = mar + ROSA_TAB;
+  let h = ROSA_TAB;
   const lista = [];
   let k = 0;
   COLS.forEach((cuantos,c) => {
@@ -576,36 +547,19 @@ function pintaTablero(hexes){
            width="${HX.toFixed(1)}" height="${HY.toFixed(1)}" preserveAspectRatio="xMidYMid slice"
            clip-path="url(#c${x.id})"/>`;
     /* la junta: ahora DORADA y fina, como en el tablero de Pam. Ya no es un borde negro. */
-    h += `<path d="${pathHex(x.cx,x.cy)}" fill="none" stroke="rgba(232,220,192,.55)" stroke-width="1.6" stroke-linejoin="round"/>`;
+    h += `<path d="${pathHex(x.cx,x.cy)}" fill="none" stroke="#1a1009" stroke-width="2.2" stroke-linejoin="round"/>`;
     if (x.num){
-      /* el numero va en un CIRCULO BLANCO con sus puntitos dentro */
-      const nx = x.cx, ny = x.cy;
-      h += `<circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="17"
-             fill="#f6f1e2" stroke="#8a7a5c" stroke-width="1.5"/>`;
-      const color = (x.num===6||x.num===8) ? '#c0392b' : '#2a2118';
-      h += `<text x="${nx.toFixed(1)}" y="${(ny-3).toFixed(1)}" text-anchor="middle" dominant-baseline="central"
-             style="font-family:Anton,sans-serif;font-size:17px;fill:${color}">${x.num}</text>`;
-      const p = PIPS[x.num], sep = 3.6, x0 = nx - ((p-1)*sep)/2;
-      for (let i=0;i<p;i++) h += `<circle cx="${(x0+i*sep).toFixed(1)}" cy="${(ny+8).toFixed(1)}" r="1.35"
-        fill="${color}"/>`;
+      /* el numero, en la esquina de arriba a la derecha, con sus puntitos debajo */
+      const nx = x.cx + R*0.52, ny = x.cy - R*0.34;
+      const color = (x.num===6||x.num===8) ? '#ff6b60' : '#fff';
+      h += `<text x="${nx.toFixed(1)}" y="${ny.toFixed(1)}" text-anchor="middle" dominant-baseline="central"
+             style="font-family:Anton,sans-serif;font-size:19px;paint-order:stroke;stroke:#1a1009;
+             stroke-width:3.2px;stroke-linejoin:round" fill="${color}">${x.num}</text>`;
+      const p = PIPS[x.num], sep = 3.7, x0 = nx - ((p-1)*sep)/2;
+      for (let i=0;i<p;i++) h += `<circle cx="${(x0+i*sep).toFixed(1)}" cy="${(ny+12.5).toFixed(1)}" r="1.5"
+        fill="#fff" stroke="#1a1009" stroke-width="1"/>`;
     }
     h += '</g>';
-  });
-
-  /* ===== LOS NOMBRES DE LOS SPOTS, sobre el tablero ===== */
-  const SPOTS = [
-    [1,0,'THE SUMMIT'], [1,2,'WINGSUIT MOUNTAIN'], [0,1,'BIG WAVE'],
-    [3,2,'SOARING DUNES'], [2,2,'VOLCANO EXPEDITION'], [3,1,'ALPINE LAUNCH'],
-  ];
-  SPOTS.forEach(([c,i,nombre]) => {
-    const p = posHex(c,i); if (!p) return;
-    const w = nombre.length*5.6 + 14;
-    h += `<g opacity=".92">
-      <rect x="${(p.cx-w/2).toFixed(0)}" y="${(p.cy-R-15).toFixed(0)}" width="${w.toFixed(0)}" height="14" rx="3"
-        fill="rgba(20,14,8,.72)" stroke="rgba(232,220,192,.4)" stroke-width=".8"/>
-      <text x="${p.cx.toFixed(0)}" y="${(p.cy-R-15+10).toFixed(0)}" text-anchor="middle"
-        style="font-family:Anton,sans-serif;font-size:8.5px;fill:#f0e2c4;letter-spacing:.4px">${nombre}</text>
-    </g>`;
   });
 
   svg.innerHTML = h;
@@ -898,8 +852,8 @@ function pintaPartida(s){
       const { cx, cy } = posHex(hh.c, hh.i);
       const pts = [];
       for (let i=0;i<6;i++){
-        /* el mismo +30 que pathHex: los vertices tienen que caer donde los lados */
-        const a = Math.PI/180*(60*i+30);
+        /* los mismos vertices que pathHex */
+        const a = Math.PI/180*(60*i-90);
         pts.push([cx+R*Math.cos(a), cy+R*Math.sin(a)]);
       }
       pts.forEach((p,i) => {
