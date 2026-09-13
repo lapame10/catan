@@ -487,7 +487,7 @@ function escuchar(cod){
         if (modo !== quiero){ modo = quiero; }
       }
       pintaPartida(s);
-      if (!POS.length) calculaPosiciones();
+      calculaPosiciones();   /* siempre: el tablero puede ser de 19 o de 30 */
       return;
     }
 
@@ -564,11 +564,22 @@ const DIBU = { flight:'#7c4ddb', board:'#0e8ba8', ride:'#4f8f1e',
                climb:'#c1741a', jump:'#c73b34', nofly:'#5f584e' };
 const TERR = { flight:'Cordillera', board:'Costa y nieve', ride:'Laderas',
                climb:'Paredes', jump:'Cumbres', nofly:'Día sin vuelo' };
+/* mazo del tablero base: 19 hexagonos */
 const MAZO = [...Array(4).fill('flight'), ...Array(4).fill('board'), ...Array(4).fill('climb'),
               ...Array(3).fill('ride'), ...Array(3).fill('jump'), 'nofly'];
+/* mazo del 5-6: 30 hexagonos, con 2 dias sin vuelo */
+const MAZO_56 = [...Array(6).fill('flight'), ...Array(6).fill('board'), ...Array(6).fill('climb'),
+                 ...Array(5).fill('ride'), ...Array(5).fill('jump'), 'nofly', 'nofly'];
+/* los discos de numero del 5-6: 28 (30 menos los 2 dias sin vuelo) */
+const NUMS_56 = [2,3,3,4,4,4,5,5,5,6,6,6,8,8,8,9,9,9,10,10,10,11,11,11,4,5,9,10];
 const NUMS = [2,3,3,4,4,5,5,6,6,8,8,9,9,10,10,11,11,12];
 const PIPS = {2:1,3:2,4:3,5:4,6:5,8:5,9:4,10:3,11:2,12:1};
-const COLS = [3,4,5,4,3];
+/* ===== LAS DOS FORMAS DE TABLERO =====
+   Base (2-4 jug):  3-4-5-4-3 = 19 hexagonos
+   5-6 jug:         3-4-5-6-5-4-3 = 30 hexagonos (la "extension" de Catan) */
+let COLS = [3,4,5,4,3];
+const COLS_56 = [3,4,5,6,5,4,3];
+function ponTablero(nJug){ COLS = (nJug >= 5) ? COLS_56.slice() : [3,4,5,4,3]; return COLS; }
 /* ===== GEOMETRIA DEL PANAL — la MISMA que el tablero que funciona =====
    (columnas a 1.5R, filas a raiz(3)*R, hexagonos de punta a 60 grados) */
 const R = 46, RX = 1.5*R, RY = Math.sqrt(3)*R, CX = 233, CY = 250;
@@ -586,8 +597,11 @@ function pathHex(cx, cy){
 }
 /* el tablero se genera UNA vez (el anfitrion) y se guarda en la sala:
    asi los dos ven exactamente el mismo mundo. */
-function crearTablero(){
-  const mazo = revuelve(MAZO), nums = revuelve(NUMS);
+function crearTablero(nJug){
+  ponTablero(nJug || 2);
+  const grande = (nJug >= 5);
+  const mazo = revuelve(grande ? MAZO_56 : MAZO);
+  const nums = revuelve(grande ? NUMS_56 : NUMS);
   const hs = []; let k=0, ni=0;
   COLS.forEach((cuantos,c) => {
     for (let i=0;i<cuantos;i++){
@@ -601,6 +615,8 @@ function crearTablero(){
 function pintaTablero(hexes){
   const svg = $('tablero');
   if (!svg) return;
+  /* la forma del tablero depende de cuantos hexagonos haya: 19 o 30 */
+  ponTablero(hexes.length > 19 ? 5 : 2);
   /* flat-top: el ancho es raiz(3)*R y el alto 2R. Los tenia al reves. */
   const HX = 2*R, HY = Math.sqrt(3)*R;
 
@@ -1165,7 +1181,7 @@ $('bEmpezar').onclick = async () => {
      Ida: cada uno pone 1 Basecamp + 1 Ruta.  Vuelta: el mismo orden al reves,
      y el SEGUNDO Basecamp ya cobra los recursos que toca. */
   const orden = [...ids, ...[...ids].reverse()];
-  const hexes = crearTablero();
+  const hexes = crearTablero(ids.length);   /* 5-6 jugadores = tablero grande */
   const recursos = {}, pa = {};
   ids.forEach(id => { recursos[id] = { flight:0, board:0, ride:0, climb:0, jump:0 }; pa[id] = 0; });
 
