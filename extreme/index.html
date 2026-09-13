@@ -138,7 +138,13 @@ const ICONOS = {
 };
 
 /* Las ilustraciones. Las que ya tenemos puestas; el resto usa su color. */
-const FOTOS = { flight:'arte/flight_hex.png' };
+const FOTOS = {
+  flight:'arte/flight_hex.png',
+  board:'arte/board_hex.png',
+  ride:'arte/ride_hex.png',
+  climb:'arte/climb_hex.png',
+  jump:'arte/jump_hex.png'
+};
 
 const MAZO = [...Array(4).fill('flight'), ...Array(4).fill('board'), ...Array(4).fill('climb'),
               ...Array(3).fill('ride'), ...Array(3).fill('jump'), 'nofly'];
