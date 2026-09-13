@@ -582,7 +582,19 @@ const COLS_56 = [3,4,5,6,5,4,3];
 function ponTablero(nJug){ COLS = (nJug >= 5) ? COLS_56.slice() : [3,4,5,4,3]; return COLS; }
 /* ===== GEOMETRIA DEL PANAL — la MISMA que el tablero que funciona =====
    (columnas a 1.5R, filas a raiz(3)*R, hexagonos de punta a 60 grados) */
-const R = 46, RX = 1.5*R, RY = Math.sqrt(3)*R, CX = 233, CY = 250;
+const R = 46, RX = 1.5*R, RY = Math.sqrt(3)*R;
+let CX = 233, CY = 250;
+/* El lienzo se ajusta a la forma del tablero (19 o 30 hexagonos): asi la isla
+   entra entera y no se deforma. Lo llama pintaTablero cada vez. */
+function ajustaLienzo(){
+  const nCols = COLS.length, nFilas = Math.max.apply(null, COLS);
+  const ancho = (nCols-1)*RX + 2*R;
+  const alto  = (nFilas-1)*RY + Math.sqrt(3)*R + RY/2;
+  CX = ancho/2;
+  CY = alto/2;
+  const svg = $('tablero');
+  if (svg) svg.setAttribute('viewBox', '0 0 ' + ancho.toFixed(0) + ' ' + alto.toFixed(0));
+}
 
 function revuelve(a){
   const r = a.slice();
