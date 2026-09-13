@@ -227,9 +227,9 @@ function pinta(){
     h += '</g>';
   });
 
-  // Los Spots legendarios: marcadores pequeños que NO tapan el tablero.
-  // Al tocarlos, el detalle sale abajo (antes eran etiquetas grandes que se encimaban).
-  const sitios = [[16,22],[450,22],[16,478],[450,478],[78,262],[388,262]];
+  // Los Spots legendarios: marcadores en el MARCO, fuera del tablero, para que no tapen
+  // ninguna ficha. Al tocarlos, el detalle sale abajo.
+  const sitios = [[20,26],[446,26],[20,474],[446,474],[233,14],[233,486]];
   SPOTS.forEach((s, i) => {
     const [x, y] = sitios[i] || [0,0];
     h += `<g class="spot" data-spot="${i}">`;
