@@ -589,7 +589,8 @@ let CX = 233, CY = 250;
 function ajustaLienzo(){
   const nCols = COLS.length, nFilas = Math.max.apply(null, COLS);
   const ancho = (nCols-1)*RX + 2*R;
-  const alto  = (nFilas-1)*RY + Math.sqrt(3)*R + RY/2;
+  /* el alto: la columna mas alta, con medio hexagono de aire arriba y abajo */
+  const alto  = (nFilas-1)*RY + Math.sqrt(3)*R;
   CX = ancho/2;
   CY = alto/2;
   const svg = $('tablero');
@@ -646,7 +647,7 @@ function pintaTablero(hexes){
   const lista = [];
   let k = 0;
   COLS.forEach((cuantos,c) => {
-    const cx = CX + (c-2)*RX, y0 = CY - ((cuantos-1)*RY)/2;
+    const cx = CX + (c - (COLS.length-1)/2)*RX, y0 = CY - ((cuantos-1)*RY)/2;
     for (let i=0;i<cuantos;i++){
       const rec = hexes[k].rec, num = hexes[k].num, id = 'c'+c+'_'+i;
       lista.push({ cx, cy: y0+i*RY, rec, num, id }); k++;
@@ -1169,7 +1170,7 @@ function posHex(c, i){
 }
 function calculaPosiciones(){
   COLS.forEach((cuantos,c) => {
-    const cx = CX + (c-2)*RX, y0 = CY - ((cuantos-1)*RY)/2;
+    const cx = CX + (c - (COLS.length-1)/2)*RX, y0 = CY - ((cuantos-1)*RY)/2;
     for (let i=0;i<cuantos;i++) POS[c*10+i] = { cx, cy: y0+i*RY };
   });
 }
