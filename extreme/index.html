@@ -490,7 +490,9 @@ function revuelve(a){
 }
 function pathHex(cx, cy){
   const p = [];
-  for (let i=0;i<6;i++){ const a=Math.PI/180*(60*i); p.push([cx+R*Math.cos(a), cy+R*Math.sin(a)]); }
+  /* +30 = hexagono FLAT-TOP (plano arriba). Con las columnas a 1.5R, asi encaja
+     como un panal sin dejar huecos. Sin el +30 iba de punta y no pegaba nunca. */
+  for (let i=0;i<6;i++){ const a=Math.PI/180*(60*i+30); p.push([cx+R*Math.cos(a), cy+R*Math.sin(a)]); }
   return p.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1)).join(' ')+' Z';
 }
 /* el tablero se genera UNA vez (el anfitrion) y se guarda en la sala:
@@ -522,7 +524,8 @@ function pintaTablero(hexes){
     <path d="M${CX} ${CY-150} L${CX+7} ${CY-6} L${CX+150} ${CY} L${CX+7} ${CY+6} L${CX} ${CY+150}
              L${CX-7} ${CY+6} L${CX-150} ${CY} L${CX-7} ${CY-6} Z"/>
   </g>`;
-  const HX = 2*R, HY = Math.sqrt(3)*R;
+  /* flat-top: el ancho es raiz(3)*R y el alto 2R. Los tenia al reves. */
+  const HX = Math.sqrt(3)*R, HY = 2*R;
   let h = ROSA_TAB;
   const lista = [];
   let k = 0;
@@ -748,6 +751,12 @@ async function coloca(tipo, clave, hexIdx){
         .map(([k,v]) => v + ' ' + k.toUpperCase()).join(' · ');
       aviso('🎁 Producción inicial', gano || 'ese rincón no produce');
     }
+    /* cada Basecamp vale 1 Punto de Aventura — TAMBIEN en la colocacion inicial */
+    if (tipo === 'base'){
+      const pa = Object.assign({}, s.pa || {});
+      pa[yo.id] = (pa[yo.id] || 0) + 1;
+      upd.pa = pa;
+    }
     upd.colocadoEn = n;
     upd.colocPaso = (tipo === 'base') ? 'camino' : null;
     if (n >= orden.length * 2){
@@ -839,7 +848,8 @@ function pintaPartida(s){
       const { cx, cy } = posHex(hh.c, hh.i);
       const pts = [];
       for (let i=0;i<6;i++){
-        const a = Math.PI/180*(60*i);
+        /* el mismo +30 que pathHex: los vertices tienen que caer donde los lados */
+        const a = Math.PI/180*(60*i+30);
         pts.push([cx+R*Math.cos(a), cy+R*Math.sin(a)]);
       }
       pts.forEach((p,i) => {
