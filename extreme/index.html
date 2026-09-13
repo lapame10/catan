@@ -419,6 +419,17 @@ const COLORES = [
   { id:'gris',    n:'Gris',    c:'#a8a49c', img:'arte/med_6.png' },  // las tiendas bajo la luna
 ];
 
+/* Los RECURSOS son los 5 deportes. OJO: no son los COLORES de jugador
+   (que son rojo/azul/verde...). Antes los mezclaba y por eso los contadores
+   salian siempre a 0. */
+const RECURSOS = [
+  { id:'flight', n:'FLIGHT', img:'arte/hex_cordillera.png' },
+  { id:'board',  n:'BOARD',  img:'arte/hex_costa.png' },
+  { id:'ride',   n:'RIDE',   img:'arte/hex_laderas.png' },
+  { id:'climb',  n:'CLIMB',  img:'arte/hex_pared.png' },
+  { id:'jump',   n:'JUMP',   img:'arte/hex_cumbres.png' },
+];
+
 const $ = id => document.getElementById(id);
 const pant = n => ['p1','p2','p3','p4','p5'].forEach(p => $(p).classList.toggle('on', p === n));
 const err = (id, txt) => { const e = $(id); e.textContent = txt; e.classList.add('on');
@@ -686,9 +697,9 @@ function pintaBarra(s){
 /* ===== TUS RECURSOS ===== */
 function pintaRecursos(s){
   const mis = (s.recursos && s.recursos[yo.id]) || {};
-  $('recursos').innerHTML = COLORES.map(c => {
+  $('recursos').innerHTML = RECURSOS.map(c => {
     const cuantos = mis[c.id] || 0;
-    return `<span class="r${cuantos?'':' gris'}"><img src="${c.img}" alt=""><b>${cuantos}</b></span>`;
+    return `<span class="r${cuantos?'':' gris'}"><img src="${c.img}" alt="" title="${c.n}"><b>${cuantos}</b></span>`;
   }).join('');
 }
 
@@ -976,7 +987,7 @@ async function pintaPanel(){
   const s = await leerSala(salaCod);
   const mis = (s.recursos && s.recursos[yo.id]) || {};
   const pinta = (cont, obj, cual) => {
-    $(cont).innerHTML = COLORES.map(c => {
+    $(cont).innerHTML = RECURSOS.map(c => {
       const tengo = mis[c.id] || 0;
       const n = obj[c.id] || 0;
       const puede = (cual === 'doy') ? tengo > 0 : true;
