@@ -617,6 +617,7 @@ function pintaTablero(hexes){
   if (!svg) return;
   /* la forma del tablero depende de cuantos hexagonos haya: 19 o 30 */
   ponTablero(hexes.length > 19 ? 5 : 2);
+  ajustaLienzo();
   /* flat-top: el ancho es raiz(3)*R y el alto 2R. Los tenia al reves. */
   const HX = 2*R, HY = Math.sqrt(3)*R;
 
