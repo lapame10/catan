@@ -173,8 +173,8 @@
   .barra .j img{width:23px;height:23px;border-radius:50%;display:block}
   .turno{text-align:center;font-size:12.5px;color:#e8c87a;font-weight:800;margin-bottom:10px;
     text-shadow:0 2px 4px rgba(0,0,0,.95)}
-  .mapa{width:100%;display:block;position:relative}
-  .mapa svg{width:100%;display:block}
+  .mapa{width:100%;display:block;position:relative;margin:2px 0 0}
+  .mapa svg{width:100%;display:block;max-height:56vh}
   .fichaInfo{margin-top:10px;font-size:12px;color:#e8dcc0;text-align:center;line-height:1.55;
     min-height:34px;text-shadow:0 2px 4px rgba(0,0,0,.95)}
   .fichaInfo b{color:#f0d899}
@@ -291,7 +291,7 @@
     <!-- TUS RECURSOS -->
     <div class="recursos" id="recursos"></div>
 
-    <div class="mapa"><svg id="tablero" viewBox="0 0 466 500"></svg></div>
+    <div class="mapa"><svg id="tablero" viewBox="10 12 446 476"></svg></div>
     <div class="fichaInfo" id="info"></div>
     <div class="err" id="err5"></div>
 
@@ -506,8 +506,19 @@ function crearTablero(){
 function pintaTablero(hexes){
   const svg = $('tablero');
   if (!svg) return;
+  /* la rosa de los vientos detras del panal */
+  const ROSA_TAB = `<g opacity="0.20" fill="none" stroke="#e8c87a" stroke-width="1.2">
+    <circle cx="${CX}" cy="${CY}" r="215"/><circle cx="${CX}" cy="${CY}" r="185" stroke-width=".8"/>
+    <circle cx="${CX}" cy="${CY}" r="120" stroke-width=".8"/>
+    <path d="M${CX} ${CY-230} L${CX+12} ${CY-8} L${CX+230} ${CY} L${CX+12} ${CY+8} L${CX} ${CY+230}
+             L${CX-12} ${CY+8} L${CX-230} ${CY} L${CX-12} ${CY-8} Z"/>
+    <path d="M${CX-150} ${CY-150} L${CX-14} ${CY-14} M${CX+150} ${CY-150} L${CX+14} ${CY-14}
+             M${CX+150} ${CY+150} L${CX+14} ${CY+14} M${CX-150} ${CY+150} L${CX-14} ${CY+14}"/>
+    <path d="M${CX} ${CY-150} L${CX+7} ${CY-6} L${CX+150} ${CY} L${CX+7} ${CY+6} L${CX} ${CY+150}
+             L${CX-7} ${CY+6} L${CX-150} ${CY} L${CX-7} ${CY-6} Z"/>
+  </g>`;
   const HX = 2*R, HY = Math.sqrt(3)*R;
-  let h = '';
+  let h = ROSA_TAB;
   const lista = [];
   let k = 0;
   COLS.forEach((cuantos,c) => {
