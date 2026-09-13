@@ -181,6 +181,36 @@
   .hex{cursor:pointer}
   .hex:active{opacity:.82}
   .nofly path{stroke-dasharray:5 4}
+
+  /* ===== TUS RECURSOS ===== */
+  .recursos{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:11px}
+  .recursos .r{display:flex;align-items:center;gap:5px;padding:4px 10px 4px 4px;border-radius:20px;
+    background-image:url('madera.jpg');background-size:cover;background-position:center;
+    font-size:11.5px;font-weight:800;color:#f0e2c4;text-shadow:0 1px 2px rgba(0,0,0,.9);
+    box-shadow:0 0 0 2px #1a1009, 0 0 0 3.5px rgba(201,165,88,.5)}
+  .recursos .r img{width:21px;height:21px;border-radius:50%;display:block}
+  .recursos .r b{color:#f0d899;font-size:13px}
+  .recursos .r.gris{opacity:.4}
+
+  /* ===== LOS BOTONES DE ACCION ===== */
+  .acciones{margin-top:13px}
+  .filaBotones{display:flex;gap:8px;margin-top:11px}
+  .btn.chico{flex:1;font-size:12px;padding:14px 6px;margin-top:0;letter-spacing:.8px}
+  .btn.chico .ct{display:block;font-size:9px;letter-spacing:0;opacity:.75;margin-top:2px}
+  .btn.chico.on{box-shadow:0 0 0 3px #f0d899, 0 3px 0 #5a4212, 0 0 20px rgba(240,216,153,.8);
+    transform:translateY(-1px)}
+  .btn.dad{font-size:17px;margin-top:0}
+
+  /* ===== EL AVISO (dados, recursos, fallos) ===== */
+  .aviso{position:fixed;inset:0;background:rgba(8,5,2,.75);display:none;
+    align-items:center;justify-content:center;z-index:50;padding:26px}
+  .aviso.on{display:flex}
+  .aviso .caja{background-color:#2a1d12;background-image:url('madera.jpg');
+    background-size:cover;background-position:center;border-radius:16px;padding:24px 20px;
+    max-width:310px;width:100%;text-align:center;font-size:14.5px;line-height:1.65;
+    color:#f0e2c4;text-shadow:0 2px 4px rgba(0,0,0,.95);
+    box-shadow:0 0 0 3px #1a1009, 0 0 0 6px #c9a558, 0 14px 34px rgba(0,0,0,.85)}
+  .aviso .caja b{color:#f0d899;font-size:20px;display:block;margin-bottom:6px}
 </style>
 </head>
 <body>
@@ -257,12 +287,29 @@
   <div class="pant" id="p5" style="margin-top:10px">
     <div class="barra" id="barra"></div>
     <div class="turno" id="turnoTxt"></div>
+
+    <!-- TUS RECURSOS -->
+    <div class="recursos" id="recursos"></div>
+
     <div class="mapa"><svg id="tablero" viewBox="0 0 466 500"></svg></div>
     <div class="fichaInfo" id="info"></div>
     <div class="err" id="err5"></div>
-    <button class="btn" id="bPasar">PASAR EL TURNO</button>
+
+    <!-- LO QUE PUEDES HACER -->
+    <div class="acciones" id="acciones">
+      <button class="btn dad" id="bDados">🎲 TIRAR LOS DADOS</button>
+      <div class="filaBotones">
+        <button class="btn chico" id="bCamino">RUTA</button>
+        <button class="btn chico" id="bBase">BASECAMP</button>
+        <button class="btn chico" id="bHub">HUB</button>
+      </div>
+      <button class="btn alt" id="bPasar">PASAR EL TURNO</button>
+    </div>
   </div>
 </div>
+
+<!-- AVISO DE LO QUE PASA (dados, recursos, errores) -->
+<div class="aviso" id="aviso"><div class="caja" id="avisoTx"></div></div>
 
 <!-- la brujula de la esquina -->
 <div class="brujula-esq">
@@ -346,7 +393,8 @@ function escuchar(cod){
     if (s.fase === 'juego'){
       pant('p5');
       if (s.hexes) pintaTablero(s.hexes);
-      pintaBarra(s);
+      pintaPartida(s);
+      if (!POS.length) calculaPosiciones();
       return;
     }
 
@@ -508,31 +556,263 @@ function pintaBarra(s){
   el.innerHTML = lista.map(j => {
     const col = COLORES.find(c => c.id === j.color) || COLORES[0];
     const act = (j.id === s.turno) ? ' act' : '';
-    return `<span class="j${act}"><img src="${col.img}" alt="">${(j.nombre||'').replace(/[<>]/g,'')}</span>`;
+    const pa = (s.pa && s.pa[j.id]) || 0;
+    return `<span class="j${act}"><img src="${col.img}" alt="">${(j.nombre||'').replace(/[<>]/g,'')}
+      ${pa ? '<b style="color:#f0d899">'+pa+'</b>' : ''}</span>`;
   }).join('');
   const t = lista.find(j => j.id === s.turno);
   const mio = (s.turno === yo.id);
-  $('turnoTxt').textContent = t ? (mio ? 'TU TURNO — ' + t.nombre : 'Turno de ' + t.nombre) : '';
+  $('turnoTxt').textContent = t ? (mio ? 'TU TURNO' : 'Turno de ' + t.nombre) : '';
   $('bPasar').disabled = !mio;
   $('bPasar').textContent = mio ? 'PASAR EL TURNO' : 'ESPERANDO…';
+  $('bDados').disabled = !mio || !!s.dados;
+  $('bDados').textContent = !mio ? '🎲 ESPERANDO…' : (s.dados ? '🎲 SACASTE ' + s.dados.total : '🎲 TIRAR LOS DADOS');
+  ['bCamino','bBase','bHub'].forEach(b => $(b).disabled = !mio);
+  pintaRecursos(s);
 }
 
-/* el boton de pasar: rota al siguiente piloto */
+/* ===== TUS RECURSOS ===== */
+function pintaRecursos(s){
+  const mis = (s.recursos && s.recursos[yo.id]) || {};
+  $('recursos').innerHTML = COLORES.map(c => {
+    const cuantos = mis[c.id] || 0;
+    return `<span class="r${cuantos?'':' gris'}"><img src="${c.img}" alt=""><b>${cuantos}</b></span>`;
+  }).join('');
+}
+
+/* ===== LOS COSTES (los mismos que el reglamento) ===== */
+const COSTES = {
+  camino: { flight:1, ride:1 },
+  base:   { flight:1, ride:1, board:1, climb:1 },
+  hub:    { climb:2, jump:3 },
+};
+const NOMBRE = { camino:'Ruta', base:'Basecamp', hub:'Adventure Hub' };
+
+function alcanza(mis, coste){
+  return Object.entries(coste).every(([k,v]) => (mis[k]||0) >= v);
+}
+function cobra(mis, coste){
+  const out = Object.assign({}, mis);
+  Object.entries(coste).forEach(([k,v]) => out[k] = (out[k]||0) - v);
+  return out;
+}
+function textoCoste(coste){
+  return Object.entries(coste).map(([k,v]) => `${v} ${k.toUpperCase()}`).join(' + ');
+}
+
+/* ===== EL AVISO (para que se vea lo que pasa) ===== */
+let avisoTimer = null;
+function aviso(titulo, texto, ms){
+  $('avisoTx').innerHTML = `<b>${titulo}</b>${texto}`;
+  $('aviso').classList.add('on');
+  clearTimeout(avisoTimer);
+  avisoTimer = setTimeout(() => $('aviso').classList.remove('on'), ms || 2600);
+}
+$('aviso').onclick = () => $('aviso').classList.remove('on');
+
+/* ===== TIRAR LOS DADOS Y COBRAR ===== */
+$('bDados').onclick = async () => {
+  const s = await leerSala(salaCod);
+  if (!s || s.turno !== yo.id || s.dados) return;
+  const d1 = 1 + Math.floor(Math.random()*6), d2 = 1 + Math.floor(Math.random()*6);
+  const total = d1 + d2;
+  const rec = Object.assign({}, s.recursos || {});
+  const gano = {};
+  if (s.hexes){
+    s.hexes.forEach((h, idx) => {
+      if (h.num !== total) return;
+      /* quien tenga un Basecamp (1) o Hub (2) pegado a este hexagono, cobra */
+      Object.entries(s.jugadores || {}).forEach(([id]) => {
+        const toca = (s.piezas && s.piezas[id] && s.piezas[id].base || []).filter(v => v.hex === idx).length +
+                     (s.piezas && s.piezas[id] && s.piezas[id].hub  || []).filter(v => v.hex === idx).length * 2;
+        if (toca > 0){
+          rec[id] = rec[id] || {};
+          rec[id][h.rec] = (rec[id][h.rec] || 0) + toca;
+          gano[id] = gano[id] || {};
+          gano[id][h.rec] = (gano[id][h.rec] || 0) + toca;
+        }
+      });
+    });
+  }
+  await update(ref(db,'extreme/salas/'+salaCod), { dados: { d1, d2, total }, recursos: rec });
+  const quien = Object.keys(gano).length
+    ? Object.entries(gano).map(([id,g]) => {
+        const j = (s.jugadores||{})[id] || {};
+        return (j.nombre||'?') + ': ' + Object.entries(g).map(([k,v]) => v+' '+k.toUpperCase()).join(', ');
+      }).join('  ·  ')
+    : 'nadie tiene nada pegado al ' + total;
+  aviso('🎲 ' + d1 + ' + ' + d2 + ' = ' + total, quien, 3200);
+};
+
+/* ===== CONSTRUIR: eliges que, y tocas el tablero ===== */
+let modo = null;   // 'camino' | 'base' | 'hub' | null
+function ponModo(m){
+  modo = (modo === m) ? null : m;
+  ['bCamino','bBase','bHub'].forEach(b => $(b).classList.remove('on'));
+  if (modo){
+    $('b' + modo.charAt(0).toUpperCase() + modo.slice(1)).classList.add('on');
+    const c = COSTES[modo];
+    $('info').innerHTML = `<b>${NOMBRE[modo]}</b> — toca el tablero donde quieras ponerla<br>
+      cuesta ${textoCoste(c)}`;
+  } else $('info').innerHTML = '';
+}
+$('bCamino').onclick = () => ponModo('camino');
+$('bBase').onclick   = () => ponModo('base');
+$('bHub').onclick    = () => ponModo('hub');
+
+/* coloca la pieza en el vertice (basecamp/hub) o en la arista (ruta) que toques */
+async function coloca(tipo, clave, hexIdx){
+  const s = await leerSala(salaCod);
+  if (!s || s.turno !== yo.id) return;
+  const mis = (s.recursos && s.recursos[yo.id]) || {};
+  const coste = COSTES[tipo];
+  if (!alcanza(mis, coste)){
+    aviso('No te llega', `Necesitas <b>${textoCoste(coste)}</b><br>y tienes: ${
+      Object.entries(mis).filter(([,v])=>v>0).map(([k,v])=>v+' '+k.toUpperCase()).join(' + ') || 'nada'}`);
+    return;
+  }
+  const piezas = JSON.parse(JSON.stringify(s.piezas || {}));
+  piezas[yo.id] = piezas[yo.id] || { base:[], hub:[], camino:[] };
+  const lista = tipo === 'camino' ? piezas[yo.id].camino : piezas[yo.id][tipo];
+  if (lista.some(p => p.k === clave)){ aviso('Ya hay algo ahí',''); return; }
+
+  if (tipo === 'base'){
+    if (piezas[yo.id].base.length + piezas[yo.id].hub.length >= 5){
+      aviso('Sin piezas', 'Ya tienes 5 Basecamps y Hubs (el máximo). Súbelos a Hub.'); return;
+    }
+    /* tiene que tocar una de tus rutas (o ser el primero) */
+    const rutas = piezas[yo.id].camino.map(p => p.k);
+    const toca = rutas.some(rk => rk.split('|').some(v => v.split('#')[0] === clave));
+    const hayAlgo = Object.values(piezas).some(p => [...(p.base||[]), ...(p.hub||[])].some(x => x.k === clave));
+    if (hayAlgo){ aviso('Ya hay una pieza ahí',''); return; }
+    if (!toca && rutas.length){ aviso('Lejos', 'Un Basecamp tiene que tocar una de tus rutas.'); return; }
+    lista.push({ k: clave, hex: hexIdx });
+  } else if (tipo === 'hub'){
+    const mio = [...(piezas[yo.id].base||[]), ...(piezas[yo.id].hub||[])].find(x => x.k === clave);
+    if (!mio){ aviso('No es tuyo', 'Solo puedes subir a Hub un Basecamp tuyo.'); return; }
+    piezas[yo.id].base = piezas[yo.id].base.filter(x => x.k !== clave);
+    piezas[yo.id].hub.push({ k: clave, hex: mio.hex });
+  } else {
+    lista.push({ k: clave, hex: hexIdx, v: clave.split('|') });
+  }
+  const rec = Object.assign({}, s.recursos || {});
+  rec[yo.id] = cobra(mis, coste);
+  const pa = Object.assign({}, s.pa || {});
+  if (tipo === 'base') pa[yo.id] = (pa[yo.id]||0) + 1;
+  if (tipo === 'hub')  pa[yo.id] = (pa[yo.id]||0) + 1;
+  await update(ref(db,'extreme/salas/'+salaCod), { piezas, recursos: rec, pa });
+  ponModo(null);
+  aviso('✔ ' + NOMBRE[tipo] + ' puesto', 'Gastaste ' + textoCoste(coste));
+}
+
+/* ===== VOLVER A PINTAR: recursos, dados y piezas encima del tablero ===== */
+function pintaPartida(s){
+  pintaBarra(s);
+  pintaRecursos(s);
+  const svg = $('tablero');
+  if (!svg) return;
+  /* quito las capas de piezas y las vuelvo a poner */
+  svg.querySelectorAll('.capaPiezas,.capaTocar').forEach(n => n.remove());
+  const P = s.piezas || {};
+  let h = '<g class="capaPiezas">';
+  Object.entries(P).forEach(([id, pp]) => {
+    const col = COLORES.find(c => c.id === ((s.jugadores||{})[id]||{}).color) || COLORES[0];
+    (pp.camino||[]).forEach(r => {
+      const v = r.v || r.k.split('|');
+      h += `<line x1="${v[0].split('#')[1]}" y1="${v[0].split('#')[2]}" x2="${v[1].split('#')[1]}"
+             y2="${v[1].split('#')[2]}" stroke="${col.c}" stroke-width="8" stroke-linecap="round"
+             opacity=".92" stroke-dasharray="1000" stroke-dashoffset="0"/>`;
+    });
+    (pp.base||[]).forEach(b => {
+      const [x,y] = b.k.split('#').slice(1);
+      h += `<circle cx="${x}" cy="${y}" r="8" fill="${col.c}" stroke="#1a1009" stroke-width="2.4"/>`;
+    });
+    (pp.hub||[]).forEach(b => {
+      const [x,y] = b.k.split('#').slice(1);
+      h += `<circle cx="${x}" cy="${y}" r="11" fill="${col.c}" stroke="#f0d899" stroke-width="2.6"/>`;
+    });
+  });
+  h += '</g>';
+  /* capa de puntos para TOCAR (solo visible cuando estas construyendo) */
+  if (modo && s.turno === yo.id){
+    h += '<g class="capaTocar">';
+    const V = {}, A = {};
+    (s.hexes||[]).forEach((hh, idx) => {
+      const { cx, cy } = posHex(hh.c, hh.i);
+      const pts = [];
+      for (let i=0;i<6;i++){
+        const a = Math.PI/180*(60*i);
+        pts.push([cx+R*Math.cos(a), cy+R*Math.sin(a)]);
+      }
+      pts.forEach((p,i) => {
+        const k = `v#${p[0].toFixed(1)}#${p[1].toFixed(1)}`;
+        if (!V[k]) V[k] = { x:p[0], y:p[1], n:0, hex:idx };
+        V[k].n++;
+      });
+      for (let i=0;i<6;i++){
+        const a = pts[i], b = pts[(i+1)%6];
+        const k = `a#${a[0].toFixed(1)},${a[1].toFixed(1)}#${b[0].toFixed(1)},${b[1].toFixed(1)}`;
+        if (!A[k]) A[k] = { a, b, hex: idx };
+      }
+    });
+    if (modo === 'camino'){
+      Object.entries(A).forEach(([k, x]) => {
+        const kk = `a#${x.a[0].toFixed(1)}#${x.a[1].toFixed(1)}|a#${x.b[0].toFixed(1)}#${x.b[1].toFixed(1)}`;
+        h += `<line class="toque" data-t="camino" data-k="${kk}" data-h="${x.hex}"
+               x1="${x.a[0]}" y1="${x.a[1]}" x2="${x.b[0]}" y2="${x.b[1]}"
+               stroke="rgba(240,216,153,.05)" stroke-width="18" stroke-linecap="round"/>`;
+      });
+    } else {
+      Object.entries(V).forEach(([k, x]) => {
+        if (x.n < 2) return;
+        h += `<circle class="toque" data-t="${modo}" data-k="v#${x.x.toFixed(1)}#${x.y.toFixed(1)}" data-h="${x.hex}"
+               cx="${x.x}" cy="${x.y}" r="11" fill="rgba(240,216,153,.06)" stroke="rgba(240,216,153,.35)" stroke-width="1.2"/>`;
+      });
+    }
+    h += '</g>';
+  }
+  svg.insertAdjacentHTML('beforeend', h);
+  svg.querySelectorAll('.toque').forEach(t => t.onclick = (e) => {
+    e.stopPropagation();
+    coloca(t.dataset.t, t.dataset.k, +t.dataset.h);
+  });
+}
+
+/* la posicion de cada hexagono en el mapa */
+const POS = [];
+function posHex(c, i){
+  return POS[c*10 + i];
+}
+function calculaPosiciones(){
+  COLS.forEach((cuantos,c) => {
+    const cx = CX + (c-2)*RX;
+    const y0 = CY - ((cuantos-1)*RY)/2 + ((c % 2) ? RY/2 : 0);
+    for (let i=0;i<cuantos;i++) POS[c*10+i] = { cx, cy: y0+i*RY };
+  });
+}
+
+/* el boton de pasar: rota al siguiente piloto y limpia los dados */
 $('bPasar').onclick = async () => {
   if (!salaCod) return;
   const s = await leerSala(salaCod);
   if (!s || s.turno !== yo.id) return;
   const ids = Object.keys(s.jugadores || {});
   const sig = ids[(ids.indexOf(yo.id) + 1) % ids.length];
-  await update(ref(db,'extreme/salas/'+salaCod), { turno: sig });
+  ponModo(null);
+  await update(ref(db,'extreme/salas/'+salaCod), { turno: sig, dados: null });
 };
 
 $('bEmpezar').onclick = async () => {
   if (!salaCod) return;
-  /* el anfitrion crea el tablero y lo guarda: los dos veran el mismo */
   const hexes = crearTablero();
+  const recursos = {}, pa = {};
+  Object.keys((await leerSala(salaCod)).jugadores || {}).forEach(id => {
+    recursos[id] = { flight:2, ride:2, board:2, climb:2, jump:0 };
+    pa[id] = 0;
+  });
   await update(ref(db,'extreme/salas/'+salaCod), {
-    fase:'juego', empezada:Date.now(), hexes, turno: yo.id
+    fase:'juego', empezada:Date.now(), hexes, turno: yo.id, recursos, pa,
+    piezas: {}, dados: null
   });
 };
 $('bLink').onclick = async () => {
@@ -544,6 +824,7 @@ $('bLink').onclick = async () => {
 };
 
 /* ==================== ARRANQUE ==================== */
+calculaPosiciones();
 window._c1 = null; window._c2 = null;
 const el1 = c => { window._c1 = c; pintaAro('aro1', [], c, el1); };
 const el2 = c => { window._c2 = c; pintaAro('aro2', [], c, el2); };
