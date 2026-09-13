@@ -6,82 +6,77 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#0f2233">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1b3a5c">
 <style>
   :root{
-    --bg:#12263a;
-    --bg2:#0d1c2b;
-    --panel:#1b3a5c;
-    --line:rgba(255,255,255,.14);
-    --txt:#eaf2fb;
-    --dim:#8fa8c2;
-    --oro:#f0b429;
-    --acento:#38bdf8;
+    --mar:#0f2233;          /* el mar, de fondo */
+    --mar2:#16324a;
+    --txt:#f2f6fa;
+    --dim:#93a9be;
+    --oro:#e8b73c;
+    --madera:#3a2a1c;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{margin:0;padding-top:env(safe-area-inset-top,0px);background:var(--bg);color:var(--txt);
+  html,body{margin:0;padding-top:env(safe-area-inset-top,0px);background:var(--mar);color:var(--txt);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none}
-  body{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 12px)}
+  body{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 
-  header{display:flex;align-items:center;gap:10px;padding:12px 16px 10px;border-bottom:1px solid var(--line)}
-  header .logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#f0b429,#e07b1a);
-    display:flex;align-items:center;justify-content:center;font-size:16px;flex:0 0 auto}
-  header h1{font-size:16px;margin:0;font-weight:800;letter-spacing:.3px}
-  header .sub{font-size:10.5px;color:var(--dim);margin-top:1px}
+  header{display:flex;align-items:center;gap:11px;padding:13px 18px 11px}
+  header .logo{width:32px;height:32px;border-radius:9px;flex:0 0 auto;
+    background:radial-gradient(circle at 30% 25%,#f5cd63,#d9992a);display:flex;align-items:center;
+    justify-content:center;font-size:17px;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+  header h1{font-size:17px;margin:0;font-weight:800;letter-spacing:.4px}
+  header .sub{font-size:10.5px;color:var(--dim);margin-top:2px;letter-spacing:.2px}
 
   /* ===== TABLERO ===== */
-  #tablero{width:100%;max-width:440px;margin:10px auto 0;display:block;padding:0 8px}
-  .hex{cursor:pointer;transition:filter .15s}
-  .hex:active{filter:brightness(1.15)}
-  .hex path{stroke:#0d1c2b;stroke-width:2.5;stroke-linejoin:round}
-  .hex .num circle{fill:#f6f1e4;stroke:#0d1c2b;stroke-width:1.5}
-  .hex .num text{font-family:-apple-system,sans-serif;font-weight:800;font-size:19px;fill:#1a2b3c;
-    text-anchor:middle;dominant-baseline:central;pointer-events:none}
-  .hex .num .pipn{font-size:7px;fill:#7a6a4a;font-weight:700;letter-spacing:.5px}
-  .hex .num.hot text{fill:#b3261e}
-  .hex .ico{font-size:22px;text-anchor:middle;dominant-baseline:central;pointer-events:none;opacity:.85}
-  .hex.desierto .ico{font-size:26px}
+  .mapa{width:100%;max-width:452px;margin:0 auto;display:block;padding:0 10px}
+  .hex{cursor:pointer}
+  .hex:active{filter:brightness(1.1)}
+  .hex .tierra{stroke:#0b1a27;stroke-width:2.2;stroke-linejoin:round}
+  .hex .borde{fill:none;stroke:rgba(255,255,255,.07);stroke-width:1.1}
 
-  /* ===== PIE ===== */
-  .pie{max-width:440px;margin:8px auto 0;padding:0 16px}
-  .fila{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}
-  .btn{border:none;border-radius:11px;padding:11px 16px;font-size:14px;font-weight:800;
-    font-family:inherit;cursor:pointer;color:#10202f;background:var(--oro)}
-  .btn:active{opacity:.85}
-  .btn.alt{background:rgba(255,255,255,.1);color:var(--txt);border:1px solid var(--line)}
-  .nota{text-align:center;font-size:11px;color:var(--dim);margin-top:10px;line-height:1.5}
+  /* la ficha del numero */
+  .ficha circle{fill:#f7f2e6;stroke:#0b1a27;stroke-width:1.8}
+  .ficha text{font-family:-apple-system,sans-serif;font-weight:800;font-size:20px;fill:#1d2b38;
+    text-anchor:middle;dominant-baseline:central;pointer-events:none;letter-spacing:-.5px}
+  .ficha.alto text{fill:#b02a20}
+  .ficha .pip{fill:#8a7a58}
+
+  .dibujo{pointer-events:none}
+
+  /* ===== BOTONES ===== */
+  .pie{max-width:452px;margin:6px auto 0;padding:0 18px}
+  .fila{display:flex;gap:9px;justify-content:center;flex-wrap:wrap}
+  .btn{border:none;border-radius:12px;padding:12px 18px;font-size:14px;font-weight:800;font-family:inherit;
+    cursor:pointer;color:#241a0d;background:linear-gradient(180deg,#f0c353,#dda42e);
+    box-shadow:0 2px 0 rgba(0,0,0,.28);transition:transform .08s}
+  .btn:active{transform:translateY(1px);box-shadow:0 1px 0 rgba(0,0,0,.28)}
+  .btn.alt{background:rgba(255,255,255,.07);color:var(--txt);border:1px solid rgba(255,255,255,.16);box-shadow:none}
 
   /* ===== DADOS ===== */
-  #dados{display:flex;gap:14px;justify-content:center;margin:14px 0 4px}
-  .dado{width:58px;height:58px;background:#f6f1e4;border-radius:12px;position:relative;
-    box-shadow:0 3px 0 rgba(0,0,0,.35);transition:transform .1s}
-  .dado.tirando{animation:gira .45s ease-in-out}
-  @keyframes gira{0%{transform:rotate(0) scale(1)}50%{transform:rotate(180deg) scale(1.12)}100%{transform:rotate(360deg) scale(1)}}
-  .punto{position:absolute;width:11px;height:11px;border-radius:50%;background:#1a2b3c}
-  .punto.tl{left:11px;top:11px}.punto.tr{right:11px;top:11px}
-  .punto.ml{left:11px;top:50%;transform:translateY(-50%)}.punto.mr{right:11px;top:50%;transform:translateY(-50%)}
-  .punto.bl{left:11px;bottom:11px}.punto.br{right:11px;bottom:11px}
+  #dados{display:flex;gap:16px;justify-content:center;margin:16px 0 6px}
+  .dado{width:60px;height:60px;background:linear-gradient(150deg,#fdfaf3,#e8dfc9);border-radius:13px;
+    position:relative;box-shadow:0 4px 0 rgba(0,0,0,.32),inset 0 -2px 6px rgba(0,0,0,.09)}
+  .dado.tirando{animation:gira .5s cubic-bezier(.3,.8,.4,1)}
+  @keyframes gira{0%{transform:rotate(0) scale(1)}45%{transform:rotate(200deg) scale(1.13)}100%{transform:rotate(360deg) scale(1)}}
+  .punto{position:absolute;width:11px;height:11px;border-radius:50%;background:#2b3542;box-shadow:inset 0 -1px 2px rgba(0,0,0,.4)}
+  .punto.tl{left:12px;top:12px}.punto.tr{right:12px;top:12px}
+  .punto.ml{left:12px;top:50%;transform:translateY(-50%)}.punto.mr{right:12px;top:50%;transform:translateY(-50%)}
+  .punto.bl{left:12px;bottom:12px}.punto.br{right:12px;bottom:12px}
   .punto.mc{left:50%;top:50%;transform:translate(-50%,-50%)}
-  #total{text-align:center;font-size:13px;color:var(--dim);margin-top:6px;min-height:18px;font-weight:700}
-  #total b{color:var(--oro);font-size:17px}
+  #total{text-align:center;font-size:12.5px;color:var(--dim);margin-top:8px;min-height:19px;font-weight:600;letter-spacing:.2px}
+  #total b{color:var(--oro);font-size:18px;font-weight:800}
 
-  /* ===== HOJA DE RECURSOS ===== */
-  #detalle{max-width:440px;margin:10px auto 0;padding:0 16px;display:none}
+  /* ===== DETALLE DE UNA FICHA ===== */
+  #detalle{max-width:452px;margin:14px auto 0;padding:0 18px;display:none}
   #detalle.show{display:block}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:13px 15px;
-    display:flex;align-items:center;gap:12px}
-  .card .cico{font-size:30px;flex:0 0 auto}
-  .card .cnom{font-weight:800;font-size:15px}
-  .card .csub{font-size:11.5px;color:var(--dim);margin-top:2px;line-height:1.4}
-  .card .csub b{color:var(--oro)}
-
-  /* Aviso de que esto es solo el tablero */
-  .aviso{max-width:440px;margin:16px auto 0;padding:0 16px}
-  .aviso .in{background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.35);border-radius:12px;
-    padding:12px 14px;font-size:12px;line-height:1.55;color:#cfe6f8}
-  .aviso b{color:var(--acento)}
+  .carta{background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.03));
+    border:1px solid rgba(255,255,255,.13);border-radius:14px;padding:13px 15px;display:flex;align-items:center;gap:13px}
+  .carta .min{width:44px;height:44px;flex:0 0 auto;border-radius:10px;display:flex;align-items:center;justify-content:center}
+  .carta .cn{font-weight:800;font-size:14.5px}
+  .carta .cs{font-size:11.5px;color:var(--dim);margin-top:3px;line-height:1.45}
+  .carta .cs b{color:var(--oro)}
 </style>
 </head>
 <body>
@@ -90,115 +85,163 @@
   <div class="logo">🎲</div>
   <div>
     <h1>Catan</h1>
-    <div class="sub" id="estado">Tablero — 19 hexágonos</div>
+    <div class="sub" id="estado">19 fichas · 3-4-5-4-3</div>
   </div>
 </header>
 
-<!-- el tablero -->
-<svg id="tablero" viewBox="0 0 460 470" aria-label="Tablero de Catan"></svg>
+<div class="mapa"><svg id="tablero" viewBox="0 0 456 480"></svg></div>
 
 <div class="pie">
   <div class="fila">
     <button class="btn" id="tirar">🎲 Tirar los dados</button>
     <button class="btn alt" id="nuevo">Nuevo tablero</button>
   </div>
-  <div id="dados" style="margin-top:14px"></div>
+  <div id="dados"></div>
   <div id="total">Toca "Tirar los dados"</div>
 </div>
 
-<div id="detalle"><div class="card" id="carta"></div></div>
-
-<div class="aviso"><div class="in">
-  <b>Esto es la primera parte:</b> el tablero con sus recursos y números, y los dados.<br>
-  Lo que sigue: la sala para compartir el link, los jugadores de 2 a 6, y las piezas (poblados y caminos).
-</div></div>
+<div id="detalle"><div class="carta" id="carta"></div></div>
 
 <script>
 /* ============================================================================
-   TABLERO DE CATAN — 19 hexágonos (filas de 3 4 5 4 3)
+   TABLERO DE CATAN — geometria CORRECTA
 
-   Recursos reales del juego:
-     4 bosque (madera) · 4 pasto (lana) · 4 trigo · 3 ladrillo · 3 mineral · 1 desierto
-   Números reales:
-     2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12  (+ el desierto sin número)
+   Hexagonos "flat-top" (con lados horizontales arriba y abajo, como las fichas
+   reales). En esta orientacion NO se acomodan por filas: se acomodan por
+   COLUMNAS, y las columnas van desfasadas media ficha. Es la forma en que encajan
+   sin dejar huecos, como un panal.
 
-   Las fichas se reparten al azar en cada partida (como en el juego real).
+     columnas:  3  4  5  4  3      (izquierda a derecha)
+     paso entre columnas:  1.5 R
+     paso dentro de una columna:  raiz(3) R
+     columnas vecinas: desfasadas raiz(3) R / 2
+
+   El desfase sale SOLO al centrar cada columna, asi que no hay que calcularlo.
    ============================================================================ */
 
-const RECURSOS = {
-  bosque:   {n:'Bosque',    ico:'🌲', color:'#1f6b3a', da:'madera'},
-  pasto:    {n:'Pasto',     ico:'🐑', color:'#63a832', da:'lana'},
-  trigo:    {n:'Trigo',     ico:'🌾', color:'#d9a521', da:'trigo'},
-  ladrillo: {n:'Ladrillo',  ico:'🧱', color:'#b5482e', da:'ladrillo'},
-  mineral:  {n:'Mineral',   ico:'⛰️', color:'#7b8794', da:'mineral'},
-  desierto: {n:'Desierto',  ico:'🏜️', color:'#ddd0a8', da:null},
+const R = 46;                       // radio (del centro a un vertice)
+const RX = 1.5 * R;                 // paso horizontal entre columnas
+const RY = Math.sqrt(3) * R;        // paso vertical dentro de una columna
+
+const RECS = {
+  bosque  : {n:'Bosque',   da:'madera',   base:'#33705a', luz:'#42826a', tinta:'#173d31'},
+  pasto   : {n:'Pasto',    da:'lana',     base:'#a8bc55', luz:'#bccd6c', tinta:'#586b21'},
+  trigo   : {n:'Trigo',    da:'trigo',    base:'#cfa73f', luz:'#ddb954', tinta:'#7a611d'},
+  ladrillo: {n:'Ladrillo', da:'ladrillo', base:'#b0573a', luz:'#c26a4b', tinta:'#6b2f1c'},
+  mineral : {n:'Mineral',  da:'mineral',  base:'#8a939c', luz:'#9ba4ad', tinta:'#4b545c'},
+  desierto: {n:'Desierto', da:null,       base:'#d9c9a0', luz:'#e4d7b5', tinta:'#8a7a55'},
 };
 
-// cuántas fichas de cada uno (39 recursos + 1 desierto no: son 18 con numero + desierto)
 const MAZO = [
-  ...Array(4).fill('bosque'),
-  ...Array(4).fill('pasto'),
-  ...Array(4).fill('trigo'),
-  ...Array(3).fill('ladrillo'),
-  ...Array(3).fill('mineral'),
-  'desierto',
+  ...Array(4).fill('bosque'), ...Array(4).fill('pasto'), ...Array(4).fill('trigo'),
+  ...Array(3).fill('ladrillo'), ...Array(3).fill('mineral'), 'desierto',
 ];
-
-// los números que van en las fichas (el desierto no lleva)
-const NUMEROS = [2,3,3,4,4,5,5,6,6,8,8,9,9,10,10,11,11,12];
-
-// probabilidad de cada número (para pintar los puntitos como en el juego real)
+const NUMS = [2,3,3,4,4,5,5,6,6,8,8,9,9,10,10,11,11,12];
 const PIPS = {2:1,3:2,4:3,5:4,6:5,8:5,9:4,10:3,11:2,12:1};
+const COLS = [3,4,5,4,3];
 
-// filas: 3, 4, 5, 4, 3
-const FILAS = [3,4,5,4,3];
-
-const R = 48;                       // radio del hexágono
-const HW = R;                       // ancho medio (lado a lado vertical)
-const HH = Math.sqrt(3) * R / 2;    // altura del centro al vértice de arriba/abajo
-const W  = 2 * R;                   // ancho total
-const H  = Math.sqrt(3) * R;        // alto total
-const CX = 230, CY = 236;           // centro del tablero
+const CX = 228, CY = 240;
 
 function revuelve(a){
-  const arr = a.slice();
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
+  const r = a.slice();
+  for (let i = r.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; }
+  return r;
 }
 
-/* Vértices de un hexágono "flat-top" (lados horizontales arriba y abajo), que es
-   como son las fichas de Catan. */
-function hexPath(cx, cy){
+/* ===== LOS DIBUJOS (SVG, dibujados a mano, no emojis) =====
+   Cada uno se dibuja en una caja de 60x60 y luego se escala y se centra.
+   Un solo color de tinta por recurso: se ven limpios y parejos. */
+const DIBUJOS = {
+  bosque: t => `
+    <g fill="${t}">
+      <path d="M14 40 L20 22 L26 40 Z"/><rect x="19" y="39" width="2" height="5" rx="1"/>
+      <path d="M23 38 L31 15 L39 38 Z"/><rect x="30" y="37" width="2.4" height="7" rx="1.2"/>
+      <path d="M36 41 L42 26 L48 41 Z"/><rect x="41" y="40" width="2" height="5" rx="1"/>
+    </g>`,
+  pasto: t => `
+    <g fill="${t}">
+      <rect x="10" y="24" width="32" height="20" rx="10"/>
+      <circle cx="46" cy="28" r="8"/>
+      <rect x="17" y="43" width="3.4" height="11" rx="1.7"/>
+      <rect x="26" y="44" width="3.4" height="11" rx="1.7"/>
+      <rect x="35" y="43" width="3.4" height="11" rx="1.7"/>
+    </g>`,
+  trigo: t => `
+    <g fill="${t}">
+      <rect x="27.4" y="16" width="5.2" height="32" rx="2.6"/>
+      <path d="M30 20 q-11 -1 -13 -11 q11 0 13 11 Z"/><path d="M30 20 q11 -1 13 -11 q-11 0 -13 11 Z"/>
+      <path d="M30 30 q-11 -1 -13 -11 q11 0 13 11 Z"/><path d="M30 30 q11 -1 13 -11 q-11 0 -13 11 Z"/>
+      <path d="M30 40 q-11 -1 -13 -11 q11 0 13 11 Z"/><path d="M30 40 q11 -1 13 -11 q-11 0 -13 11 Z"/>
+    </g>`,
+  ladrillo: t => `
+    <g fill="${t}">
+      <rect x="12" y="22" width="17" height="9" rx="2"/>
+      <rect x="31" y="22" width="17" height="9" rx="2"/>
+      <rect x="21.5" y="33" width="17" height="9" rx="2"/>
+      <rect x="12" y="44" width="17" height="9" rx="2"/>
+      <rect x="31" y="44" width="17" height="9" rx="2"/>
+    </g>`,
+  mineral: t => `
+    <g fill="${t}">
+      <path d="M4 47 L20 17 L36 47 Z"/>
+      <path d="M26 47 L40 24 L56 47 Z"/>
+      <path d="M20 17 L25.5 28 L14.5 28 Z" fill="#f2f6fa" opacity=".9"/>
+      <path d="M40 24 L44 33 L36 33 Z" fill="#f2f6fa" opacity=".9"/>
+    </g>`,
+  desierto: t => `
+    <g fill="${t}">
+      <path d="M2 44 q13 -14 26 0 q13 -14 26 0 Z"/>
+      <circle cx="44" cy="15" r="7"/>
+      <rect x="13" y="26" width="5" height="19" rx="2.5"/>
+      <rect x="5" y="29" width="4.4" height="9" rx="2.2"/>
+      <rect x="5" y="29" width="12" height="4.4" rx="2.2"/>
+      <rect x="7" y="22" width="4.4" height="9" rx="2.2"/>
+      <rect x="7" y="22" width="10" height="4.4" rx="2.2"/>
+    </g>`,
+};
+
+function verts(cx, cy){
   const p = [];
-  for (let i = 0; i < 6; i++) {
-    const ang = (Math.PI / 180) * (60 * i);
-    p.push([cx + R * Math.cos(ang), cy + R * Math.sin(ang)]);
+  for (let i = 0; i < 6; i++){
+    const a = (Math.PI / 180) * (60 * i);
+    p.push([cx + R * Math.cos(a), cy + R * Math.sin(a)]);
+  }
+  return p;
+}
+function path(cx, cy){
+  return verts(cx, cy).map((q, i) => (i ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1)).join(' ') + ' Z';
+}
+/* el mismo hexagono pero encogido un poco: para el borde interior, da sensacion
+   de ficha con relieve en vez de color plano */
+function pathIn(cx, cy, k){
+  const rr = R * k;
+  const p = [];
+  for (let i = 0; i < 6; i++){
+    const a = (Math.PI / 180) * (60 * i);
+    p.push([cx + rr * Math.cos(a), cy + rr * Math.sin(a)]);
   }
   return p.map((q, i) => (i ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1)).join(' ') + ' Z';
 }
 
-let layout = [];   // guarda cada hexagono: {cx, cy, rec, num, id}
+let layout = [];
 
 function construye(){
   const mazo = revuelve(MAZO);
-  const nums = revuelve(NUMEROS);
+  const nums = revuelve(NUMS);
   layout = [];
   let k = 0, ni = 0;
 
-  FILAS.forEach((cuantos, f) => {
-    const dx = W * 0.75;                       // separacion horizontal entre columnas
-    const ancho = (cuantos - 1) * dx;
-    const x0 = CX - ancho / 2;
-    const y = CY + (f - 2) * H;
-
-    for (let i = 0; i < cuantos; i++) {
-      const cx = x0 + i * dx;
+  COLS.forEach((cuantos, c) => {
+    const cx = CX + (c - 2) * RX;
+    const alto = (cuantos - 1) * RY;
+    const y0 = CY - alto / 2;
+    for (let i = 0; i < cuantos; i++){
       const rec = mazo[k++];
-      const num = rec === 'desierto' ? null : nums[ni++];
-      layout.push({ cx, cy: y, rec, num, id: 'h' + f + '_' + i });
+      layout.push({
+        cx, cy: y0 + i * RY, rec,
+        num: rec === 'desierto' ? null : nums[ni++],
+        id: 'c' + c + '_' + i
+      });
     }
   });
 }
@@ -207,27 +250,38 @@ function pinta(){
   const svg = document.getElementById('tablero');
   let h = '';
 
-  // el mar
-  h += '<rect x="0" y="0" width="460" height="470" fill="#1b4a6b" rx="0"/>';
+  // el mar, con un degradado suave
+  h += '<defs><radialGradient id="mar" cx="50%" cy="42%" r="72%">' +
+       '<stop offset="0%" stop-color="#1a3a55"/><stop offset="100%" stop-color="#0d1e2d"/></radialGradient></defs>';
+  h += '<rect x="0" y="0" width="456" height="480" fill="url(#mar)"/>';
 
   layout.forEach(hex => {
-    const info = RECURSOS[hex.rec];
-    h += '<g class="hex' + (hex.rec === 'desierto' ? ' desierto' : '') + '" data-id="' + hex.id + '">';
-    h += '<path d="' + hexPath(hex.cx, hex.cy) + '" fill="' + info.color + '"/>';
+    const info = RECS[hex.rec];
+    h += '<g class="hex" data-id="' + hex.id + '">';
+    h += '<path class="tierra" d="' + path(hex.cx, hex.cy) + '" fill="' + info.base + '"/>';
+    // relieve: un hexagono interior mas claro
+    h += '<path d="' + pathIn(hex.cx, hex.cy, 0.86) + '" fill="' + info.luz + '" opacity=".5"/>';
 
-    // el icono del recurso, un poco arriba
-    h += '<text class="ico" x="' + hex.cx + '" y="' + (hex.cy - (hex.num ? 9 : 0)) + '">' + info.ico + '</text>';
+    // el dibujo del recurso
+    const esc = (hex.rec === 'desierto') ? 1.02 : 0.86;
+    const tx = hex.cx - 30 * esc;
+    const ty = hex.cy - 30 * esc - (hex.num ? 7 : 0);
+    h += '<g class="dibujo" transform="translate(' + tx.toFixed(1) + ',' + ty.toFixed(1) + ') scale(' + esc + ')">';
+    h += DIBUJOS[hex.rec](info.tinta);
+    h += '</g>';
 
+    // la ficha del numero
     if (hex.num){
-      const hot = (hex.num === 6 || hex.num === 8) ? ' hot' : '';
-      h += '<g class="num' + hot + '">';
-      h += '<circle cx="' + hex.cx + '" cy="' + (hex.cy + 15) + '" r="17"/>';
-      h += '<text x="' + hex.cx + '" y="' + (hex.cy + 15) + '">' + hex.num + '</text>';
-      // los puntitos de probabilidad
+      const alto = (hex.num === 6 || hex.num === 8) ? ' alto' : '';
+      const cy2 = hex.cy + 19;
+      h += '<g class="ficha' + alto + '">';
+      h += '<circle cx="' + hex.cx + '" cy="' + cy2 + '" r="16.5"/>';
+      h += '<text x="' + hex.cx + '" y="' + (cy2 + 0.5) + '">' + hex.num + '</text>';
       const pips = PIPS[hex.num];
-      let px = hex.cx - ((pips - 1) * 4.2) / 2;
+      const sep = 4.1;
+      const x0 = hex.cx - ((pips - 1) * sep) / 2;
       for (let i = 0; i < pips; i++){
-        h += '<circle cx="' + (px + i * 4.2).toFixed(1) + '" cy="' + (hex.cy + 27) + '" r="1.5" fill="#7a6a4a"/>';
+        h += '<circle class="pip" cx="' + (x0 + i * sep).toFixed(1) + '" cy="' + (cy2 + 10.5) + '" r="1.4"/>';
       }
       h += '</g>';
     }
@@ -235,86 +289,57 @@ function pinta(){
   });
 
   svg.innerHTML = h;
-
-  // tocar una ficha muestra que da
-  svg.querySelectorAll('.hex').forEach(g => {
-    g.addEventListener('click', () => muestra(g.getAttribute('data-id')));
-  });
+  svg.querySelectorAll('.hex').forEach(g => g.addEventListener('click', () => muestra(g.getAttribute('data-id'))));
 }
 
 function muestra(id){
   const hex = layout.find(x => x.id === id);
   if (!hex) return;
-  const info = RECURSOS[hex.rec];
-  const box = document.getElementById('detalle');
-  const c = document.getElementById('carta');
+  const info = RECS[hex.rec];
   const prob = hex.num ? (PIPS[hex.num] / 36 * 100).toFixed(1) : null;
-
-  c.innerHTML =
-    '<div class="cico">' + info.ico + '</div>' +
-    '<div>' +
-      '<div class="cnom">' + info.n + (hex.num ? ' · ' + hex.num : '') + '</div>' +
-      '<div class="csub">' +
-        (info.da ? 'Da <b>' + info.da + '</b>' : 'Aquí no se produce nada — <b>empieza el ladrón</b>') +
-        (prob ? ' · sale <b>' + prob + '%</b> de las veces' : '') +
-      '</div>' +
-    '</div>';
-  box.classList.add('show');
+  document.getElementById('carta').innerHTML =
+    '<div class="min" style="background:' + info.base + '">' +
+      '<svg width="30" height="30" viewBox="0 0 60 60">' + DIBUJOS[hex.rec]('#ffffff') + '</svg>' +
+    '</div>' +
+    '<div><div class="cn">' + info.n + (hex.num ? ' · ' + hex.num : '') + '</div>' +
+    '<div class="cs">' +
+      (info.da ? 'Da <b>' + info.da + '</b>' : 'Aquí no se produce — <b>empieza el ladrón</b> 🥷') +
+      (prob ? ' · sale <b>' + prob + '%</b> de las veces' : '') +
+    '</div></div>';
+  document.getElementById('detalle').classList.add('show');
 }
 
 /* ===== DADOS ===== */
-const CARAS = [
-  [],                                  // 0
-  ['mc'],                              // 1
-  ['tl','br'],                         // 2
-  ['tl','mc','br'],                    // 3
-  ['tl','tr','bl','br'],               // 4
-  ['tl','tr','mc','bl','br'],          // 5
-  ['tl','tr','ml','mr','bl','br'],     // 6
-];
-
-function cara(n){
-  let h = '';
-  CARAS[n].forEach(p => { h += '<span class="punto ' + p + '"></span>'; });
-  return h;
-}
+const CARAS = [[], ['mc'], ['tl','br'], ['tl','mc','br'], ['tl','tr','bl','br'],
+               ['tl','tr','mc','bl','br'], ['tl','tr','ml','mr','bl','br']];
+const cara = n => CARAS[n].map(p => '<span class="punto ' + p + '"></span>').join('');
 
 function pintaDados(a, b){
-  const d = document.getElementById('dados');
-  d.innerHTML = '<div class="dado" id="d1">' + cara(a) + '</div>' +
-                '<div class="dado" id="d2">' + cara(b) + '</div>';
+  document.getElementById('dados').innerHTML =
+    '<div class="dado" id="d1">' + cara(a) + '</div><div class="dado" id="d2">' + cara(b) + '</div>';
 }
-
 function tirar(){
   const d = document.getElementById('dados');
   d.querySelectorAll('.dado').forEach(x => { x.classList.remove('tirando'); void x.offsetWidth; x.classList.add('tirando'); });
   document.getElementById('total').innerHTML = '…';
-
   setTimeout(() => {
-    const a = 1 + Math.floor(Math.random() * 6);
-    const b = 1 + Math.floor(Math.random() * 6);
+    const a = 1 + Math.floor(Math.random() * 6), b = 1 + Math.floor(Math.random() * 6);
     pintaDados(a, b);
     const t = a + b;
-    const es7 = (t === 7);
-    document.getElementById('total').innerHTML =
-      'Salio <b>' + t + '</b>' + (es7 ? ' — ¡sale el ladrón! 🥷' : (t === 12 ? ' — ¡jackpot! 🎉' : ''));
-  }, 460);
+    document.getElementById('total').innerHTML = 'Salio <b>' + t + '</b>' +
+      (t === 7 ? ' — ¡sale el ladrón! 🥷' : (t === 12 ? ' — ¡jackpot! 🎉' : ''));
+  }, 500);
 }
 
 document.getElementById('tirar').onclick = tirar;
 document.getElementById('nuevo').onclick = () => {
   construye(); pinta();
   document.getElementById('detalle').classList.remove('show');
-  pintaDados(0,0);
+  pintaDados(1, 1);
   document.getElementById('total').textContent = 'Tablero nuevo 🎲';
 };
 
-/* arranque */
-construye();
-pinta();
-// los dados arrancan mostrando 1 y 1 para que se vean
-pintaDados(1,1);
-document.getElementById('total').textContent = 'Toca "Tirar los dados"';
+construye(); pinta(); pintaDados(1, 1);
 </script>
 </body>
 </html>
