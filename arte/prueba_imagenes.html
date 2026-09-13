@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>EXTREME — prueba con ilustraciones</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  html,body{margin:0;background:#1f1510;color:#f2e8d5;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  header{text-align:center;padding:18px 16px 6px}
+  header h1{margin:0;font-size:27px;font-weight:900;letter-spacing:2px;
+    background:linear-gradient(180deg,#fff5e0,#e0b877);-webkit-background-clip:text;
+    -webkit-text-fill-color:transparent}
+  header .s{font-size:9px;letter-spacing:3px;color:#b99a6e;font-weight:800;margin-top:4px;text-transform:uppercase}
+  .mapa{width:100%;max-width:470px;margin:8px auto;display:block;padding:0 8px}
+  .eti{max-width:470px;margin:14px auto 0;padding:0 20px;font-size:12.5px;color:#b99a6e;text-align:center;line-height:1.6}
+  .eti b{color:#f2e8d5}
+  /* la ficha del numero, encima de la foto */
+  .num circle{fill:#f2e8d5;stroke:#1a1009;stroke-width:2}
+  .num text{font-family:-apple-system,sans-serif;font-weight:900;font-size:20px;fill:#2a1d12;
+    text-anchor:middle;dominant-baseline:central}
+  .num.alto text{fill:#b3261e}
+  .num .pip{fill:#9a8a6a}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>EXTREME</h1>
+  <div class="s">Prueba con ilustración</div>
+</header>
+
+<div class="mapa"><svg id="t" viewBox="0 0 466 500"></svg></div>
+
+<div class="eti">
+  Así quedaría con <b>tus ilustraciones dentro de cada hexágono</b>.<br>
+  Aquí solo hay una (el bosque) y la repetí para que veas el efecto —
+  con las 5 tuyas, cada deporte tendría la suya.
+</div>
+
+<script>
+const R = 46, RX = 1.5 * R, RY = Math.sqrt(3) * R, CX = 233, CY = 250;
+const COLS = [3,4,5,4,3];
+const NUMS = [2,3,3,4,4,5,5,6,6,8,8,9,9,10,10,11,11,12];
+const PIPS = {2:1,3:2,4:3,5:4,6:5,8:5,9:4,10:3,11:2,12:1};
+
+// la ilustracion recortada en hexagono (la que acabo de generar)
+const FOTO = 'bosque_hex.png';
+
+function pathHex(cx, cy){
+  const p = [];
+  for (let i = 0; i < 6; i++){
+    const a = (Math.PI / 180) * (60 * i);
+    p.push([cx + R * Math.cos(a), cy + R * Math.sin(a)]);
+  }
+  return p.map((q, i) => (i ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1)).join(' ') + ' Z';
+}
+
+function revuelve(a){
+  const r = a.slice();
+  for (let i = r.length - 1; i > 0; i--){ const j = Math.floor(Math.random()*(i+1)); [r[i],r[j]]=[r[j],r[i]]; }
+  return r;
+}
+
+let layout = [];
+function construye(){
+  const nums = revuelve(NUMS);
+  layout = []; let ni = 0;
+  COLS.forEach((cuantos, c) => {
+    const cx = CX + (c - 2) * RX;
+    const y0 = CY - ((cuantos - 1) * RY) / 2;
+    for (let i = 0; i < cuantos; i++){
+      const esNofly = (c === 2 && i === 2);      // el de en medio = dia sin vuelo
+      layout.push({cx, cy: y0 + i * RY, id: 'h' + c + '_' + i,
+        num: esNofly ? null : nums[ni++], nofly: esNofly});
+    }
+  });
+}
+
+function pinta(){
+  const svg = document.getElementById('t');
+  const HX = 2 * R, HY = Math.sqrt(3) * R;      // caja del hexagono
+  let h = '<defs><radialGradient id="mar" cx="50%" cy="42%" r="74%">' +
+          '<stop offset="0%" stop-color="#1b4560"/><stop offset="100%" stop-color="#0b1a28"/></radialGradient>';
+  // una mascara hexagonal por hexagono: recorta la foto con esa forma
+  layout.forEach(hex => {
+    h += `<clipPath id="c${hex.id}"><path d="${pathHex(hex.cx, hex.cy)}"/></clipPath>`;
+  });
+  h += '</defs>';
+  h += '<rect width="466" height="500" fill="url(#mar)"/>';
+
+  layout.forEach(hex => {
+    h += `<g>`;
+    if (hex.nofly){
+      // dia sin vuelo: sin foto, color plano
+      h += `<path d="${pathHex(hex.cx, hex.cy)}" fill="#6b5b48" stroke="#1a1009" stroke-width="2.4" stroke-linejoin="round"/>`;
+      h += `<g fill="#fff" opacity=".75" transform="translate(${hex.cx - 20 * .62},${hex.cy - 20 * .62 - 6}) scale(.62)">` +
+           `<path d="M20 6 L30 16 L26 16 L26 30 L14 30 L14 16 L10 16 Z"/></g>`;
+    } else {
+      // LA FOTO, recortada en hexagono con la mascara
+      h += `<image href="${FOTO}" x="${(hex.cx - HX/2).toFixed(1)}" y="${(hex.cy - HY/2).toFixed(1)}" ` +
+           `width="${HX.toFixed(1)}" height="${HY.toFixed(1)}" ` +
+           `preserveAspectRatio="xMidYMid slice" clip-path="url(#c${hex.id})"/>`;
+      // el borde encima, para que se lea como ficha
+      h += `<path d="${pathHex(hex.cx, hex.cy)}" fill="none" stroke="#1a1009" stroke-width="2.4" stroke-linejoin="round"/>`;
+    }
+    // el numero, encima de la foto
+    if (hex.num){
+      const alto = (hex.num === 6 || hex.num === 8) ? ' alto' : '';
+      const cy2 = hex.cy + 20;
+      h += `<g class="num${alto}"><circle cx="${hex.cx}" cy="${cy2}" r="16.5"/>`;
+      h += `<text x="${hex.cx}" y="${cy2 + 0.5}">${hex.num}</text>`;
+      const p = PIPS[hex.num], sep = 4.1, x0 = hex.cx - ((p-1)*sep)/2;
+      for (let i = 0; i < p; i++) h += `<circle class="pip" cx="${(x0+i*sep).toFixed(1)}" cy="${cy2+10.5}" r="1.4"/>`;
+      h += '</g>';
+    }
+    h += '</g>';
+  });
+  svg.innerHTML = h;
+}
+
+construye(); pinta();
+</script>
+</body>
+</html>
