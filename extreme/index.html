@@ -869,7 +869,7 @@ $('bDados').onclick = async () => {
 
 /* ===== CONSTRUIR: eliges que, y tocas el tablero ===== */
 let modo = null;   // 'camino' | 'base' | 'hub' | null
-function ponModo(m){
+async function ponModo(m){
   modo = (modo === m) ? null : m;
   ['bCamino','bBase','bHub'].forEach(b => $(b).classList.remove('on'));
   if (modo){
@@ -878,6 +878,10 @@ function ponModo(m){
     $('info').innerHTML = `<b>${NOMBRE[modo]}</b> — toca el tablero donde quieras ponerla<br>
       cuesta ${textoCoste(c)}`;
   } else $('info').innerHTML = '';
+  /* REPINTAR: al cambiar el modo hay que volver a pintar, o los puntos
+     donde SI puedes poner no aparecen hasta el siguiente aviso del servidor. */
+  const s = await leerSala(salaCod);
+  if (s) pintaPartida(s);
 }
 $('bCamino').onclick = () => ponModo('camino');
 $('bBase').onclick   = () => ponModo('base');
