@@ -463,7 +463,9 @@ function pintaTablero(hexes){
   const lista = [];
   let k = 0;
   COLS.forEach((cuantos,c) => {
-    const cx = CX + (c-2)*RX, y0 = CY - ((cuantos-1)*RY)/2;
+    const cx = CX + (c-2)*RX;
+    /* las columnas impares van MEDIA FICHA mas abajo: asi encajan como un panal */
+    const y0 = CY - ((cuantos-1)*RY)/2 + ((c % 2) ? RY/2 : 0);
     for (let i=0;i<cuantos;i++){
       const rec = hexes[k].rec, num = hexes[k].num, id = 'h'+c+'_'+i;
       lista.push({ cx, cy: y0+i*RY, rec, num, id }); k++;
