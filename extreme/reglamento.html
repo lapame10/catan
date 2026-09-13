@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>EXTREME — Reglamento</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root{
+    --bg:#0f1b26; --card:#17293a; --line:rgba(255,255,255,.13);
+    --tx:#eaf2f8; --dim:#93a9be; --oro:#f0b429; --acento:#38bdf8;
+    --fl:#38bdf8; --bo:#f0b429; --ri:#f97316; --cl:#a78bfa; --ju:#ec4899;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--tx);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    line-height:1.62;font-size:15px;padding:0 0 60px}
+  .env{max-width:760px;margin:0 auto;padding:0 18px}
+
+  header{padding:34px 18px 26px;text-align:center;
+    background:linear-gradient(180deg,rgba(56,189,248,.13),transparent)}
+  header .k{font-size:11px;letter-spacing:5px;color:var(--acento);font-weight:800;text-transform:uppercase}
+  header h1{font-size:38px;margin:8px 0 6px;font-weight:900;letter-spacing:-.5px}
+  header .tag{color:var(--dim);font-size:14.5px;font-style:italic}
+  header .datos{margin-top:16px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+  header .datos span{background:rgba(255,255,255,.07);border:1px solid var(--line);
+    border-radius:20px;padding:5px 13px;font-size:11.5px;font-weight:700;color:var(--dim)}
+
+  h2{font-size:19px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line);font-weight:800}
+  h2 .n{color:var(--acento);font-size:13px;margin-right:8px;font-weight:900}
+  h3{font-size:15.5px;margin:20px 0 8px;font-weight:800;color:#cfe4f5}
+  p{margin:9px 0}
+  ul{margin:9px 0;padding-left:20px}
+  li{margin:5px 0}
+  b,strong{color:#fff}
+
+  table{width:100%;border-collapse:collapse;margin:13px 0;font-size:13.5px;
+    background:var(--card);border-radius:11px;overflow:hidden}
+  th{background:rgba(56,189,248,.12);text-align:left;padding:9px 11px;font-size:11px;
+    letter-spacing:1px;text-transform:uppercase;color:var(--acento);font-weight:800}
+  td{padding:9px 11px;border-top:1px solid var(--line)}
+  td b{color:#fff}
+
+  .caja{background:var(--card);border:1px solid var(--line);border-radius:13px;
+    padding:15px 17px;margin:14px 0}
+  .caja.ojo{border-color:rgba(240,180,41,.45);background:rgba(240,180,41,.08)}
+  .caja.clave{border-color:rgba(56,189,248,.45);background:rgba(56,189,248,.08)}
+  .caja .t{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;font-weight:800;
+    color:var(--oro);margin-bottom:7px}
+
+  .rec{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+  .rec:last-child{border-bottom:none}
+  .rec .ic{font-size:26px;width:38px;text-align:center;flex:0 0 auto}
+  .rec .nm{font-weight:800;font-size:15px}
+  .rec .ds{font-size:12.5px;color:var(--dim);margin-top:2px}
+  .rec .co{font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;margin-left:auto;flex:0 0 auto}
+
+  .paso{display:flex;gap:12px;margin:12px 0;align-items:flex-start}
+  .paso .num{flex:0 0 auto;width:26px;height:26px;border-radius:50%;background:var(--acento);
+    color:#0b1520;font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center}
+  .paso .tx{flex:1;font-size:14px}
+
+  .fichas{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .ficha{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:12px;text-align:center}
+  .ficha .ico{font-size:24px}
+  .ficha .nm{font-weight:800;font-size:13px;margin-top:5px}
+  .ficha .ct{font-size:11px;color:var(--dim);margin-top:4px;line-height:1.45}
+
+  .final{border-left:3px solid var(--oro);padding-left:15px;margin:18px 0;
+    font-size:14.5px;color:#dbe7f2;font-style:italic}
+
+  @media print{body{background:#fff;color:#111}h2{page-break-after:avoid}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="k">Reglamento</div>
+  <h1>EXTREME</h1>
+  <div class="tag">Conquista el terreno. Abre el Spot. Vive la aventura.</div>
+  <div class="datos">
+    <span>👥 2–6 jugadores</span>
+    <span>🎂 10+</span>
+    <span>⏱️ 60–120 min</span>
+    <span>🎯 10 Puntos de Aventura</span>
+  </div>
+</header>
+
+<div class="env">
+
+<h2><span class="n">01</span>De qué va</h2>
+<p>Eres un <b>atleta explorador</b> en una región salvaje sin cartografiar. Vuelas, ruedas, escalas y saltas para <b>descubrir Spots</b> — los mejores lugares del mundo para practicar deportes extremos — y convertirlos en <b>centros de aventura</b>.</p>
+<p>La zona donde estás empieza a ser conocida. Tienes el mapa delante. <b>¿Cómo llegas ahí?</b> Cada Spot que abras te da recursos, poder y puntos. El primero en llegar a <b>10 Puntos de Aventura</b> gana.</p>
+
+<div class="caja clave">
+  <div class="t">La idea de una línea</div>
+  EXTREME es el juego que ya conoces — construir, comerciar, expandirte — pero donde los cinco recursos son <b>las cinco formas de moverte por el mundo</b>.
+</div>
+
+<h2><span class="n">02</span>Los cinco recursos</h2>
+<p>Cada familia de deportes <b>es</b> un recurso. Los necesitas todos, pero cada uno sirve para algo distinto.</p>
+
+<div class="rec">
+  <div class="ic">🪂</div>
+  <div><div class="nm">FLIGHT</div><div class="ds">Parapente, parakite, ala delta. <b>Cruza.</b> Valles, cordilleras, grandes distancias.</div></div>
+  <div class="co" style="background:rgba(56,189,248,.18);color:var(--fl)">4 terrenos</div>
+</div>
+<div class="rec">
+  <div class="ic">🏄</div>
+  <div><div class="nm">BOARD</div><div class="ds">Surf, snowboard, sandboard. <b>Desliza.</b> Olas, nieve, dunas, pendientes.</div></div>
+  <div class="co" style="background:rgba(240,180,41,.18);color:var(--bo)">4 terrenos</div>
+</div>
+<div class="rec">
+  <div class="ic">🧗</div>
+  <div><div class="nm">CLIMB</div><div class="ds">Escalada, alpinismo, hielo. <b>Asciende.</b> Paredes, cumbres, terreno vertical.</div></div>
+  <div class="co" style="background:rgba(167,139,250,.18);color:var(--cl)">4 terrenos</div>
+</div>
+<div class="rec">
+  <div class="ic">🏍️</div>
+  <div><div class="nm">RIDE</div><div class="ds">Enduro, MTB, moto de aventura. <b>Recorre.</b> Trails, bosques, valles.</div></div>
+  <div class="co" style="background:rgba(249,115,22,.18);color:var(--ri)">3 terrenos</div>
+</div>
+<div class="rec">
+  <div class="ic">🪽</div>
+  <div><div class="nm">JUMP</div><div class="ds">Paracaidismo, BASE, wingsuit. <b>Salta.</b> El más escaso y el más potente.</div></div>
+  <div class="co" style="background:rgba(236,72,153,.18);color:var(--ju)">3 terrenos</div>
+</div>
+
+<div class="caja ojo">
+  <div class="t">Por qué JUMP es escaso</div>
+  Solo lo piden las <b>mejoras</b> (Adventure Hub) y las Cartas de Aventura — igual que el mineral en el juego original. <b>Sin JUMP no pierdes, pero no despegas.</b>
+</div>
+
+<h2><span class="n">03</span>El tablero</h2>
+<p><b>19 hexágonos</b>: 4 de vuelo, 4 de costa/nieve, 4 de pared, 3 de enduro, 3 de cumbre y 1 <b>Día sin vuelo</b>. Cada uno lleva una <b>ficha de número</b> — menos el Día sin vuelo, que no produce nunca.</p>
+
+<table>
+  <tr><th>Terreno</th><th>Produce</th><th>Cuántos</th><th>Qué es</th></tr>
+  <tr><td>🪂 <b>Cordillera</b></td><td>FLIGHT</td><td>4</td><td>Crestas, despegues, térmicas</td></tr>
+  <tr><td>🏄 <b>Costa y nieve</b></td><td>BOARD</td><td>4</td><td>Olas, neveros, dunas</td></tr>
+  <tr><td>🧗 <b>Paredes</b></td><td>CLIMB</td><td>4</td><td>Farallones, canteras, glaciares</td></tr>
+  <tr><td>🏍️ <b>Laderas</b></td><td>RIDE</td><td>3</td><td>Senderos, bosque, valle</td></tr>
+  <tr><td>🪽 <b>Cumbres</b></td><td>JUMP</td><td>3</td><td>Paredes de salto, miradores</td></tr>
+  <tr><td>🌩️ <b>Día sin vuelo</b></td><td>—</td><td>1</td><td>Aquí empieza el mal tiempo</td></tr>
+</table>
+
+<p><b>Los números van del 2 al 12</b> (uno de cada, y el 2 y el 12 repetidos) — el <b>6 y el 8 salen más</b> y por eso valen más. Los números <b>6 y 8 están marcados en rojo</b>.</p>
+
+<h2><span class="n">04</span>Componentes</h2>
+<table>
+  <tr><th>Pieza</th><th>3–4 jug.</th><th>5–6 jug.</th></tr>
+  <tr><td>Hexágonos de terreno</td><td>19</td><td><b>30</b></td></tr>
+  <tr><td>Discos de número</td><td>18</td><td><b>28</b></td></tr>
+  <tr><td>Piezas de marco del mar</td><td>6</td><td><b>10</b></td></tr>
+  <tr><td>Outposts (puertos)</td><td>9</td><td>9</td></tr>
+  <tr><td><b>Basecamps</b> por jugador</td><td>5</td><td>5</td></tr>
+  <tr><td><b>Adventure Hubs</b> por jugador</td><td>4</td><td>4</td></tr>
+  <tr><td><b>Rutas</b> por jugador</td><td>15</td><td>15</td></tr>
+  <tr><td>Cartas de Aventura</td><td>25</td><td><b>50</b></td></tr>
+  <tr><td>Fichas del Mal Tiempo</td><td>1</td><td><b>2</b></td></tr>
+  <tr><td>Marcadores de Jugador 1 / 2</td><td>—</td><td>2</td></tr>
+  <tr><td>Dados</td><td>2</td><td>2</td></tr>
+  <tr><td>Tablero de piloto (por jugador)</td><td>1</td><td>1</td></tr>
+  <tr><td>Fichas de recursos (5 colores)</td><td>~95</td><td><b>~150</b></td></tr>
+</table>
+<p style="font-size:13px;color:var(--dim)">Para 5-6 basta con <b>dos cajas base</b> más las 11 fichas, los 10 discos y las 25 cartas extra.</p>
+
+<h2><span class="n">05</span>Preparación</h2>
+<div class="paso"><div class="num">1</div><div class="tx">Monta los 19 hexágonos al azar y pon encima las fichas de número, también al azar.</div></div>
+<div class="paso"><div class="num">2</div><div class="tx">Coloca el <b>Mal Tiempo</b> en el Día sin vuelo.</div></div>
+<div class="paso"><div class="num">3</div><div class="tx">Coloca los 9 <b>Outposts</b> en las costas, boca abajo, y revélalos cuando alguien construya junto a uno.</div></div>
+<div class="paso"><div class="num">4</div><div class="tx">Baraja las <b>Cartas de Aventura</b> y déjalas al lado.</div></div>
+<div class="paso"><div class="num">5</div><div class="tx">Cada jugador coge su color: <b>5 Basecamps, 4 Hubs, 15 Rutas</b> y su tablero de piloto.</div></div>
+<div class="paso"><div class="num">6</div><div class="tx">Todos tiran los dados. <b>El más alto empieza.</b></div></div>
+
+<h3>Colocación inicial</h3>
+<p>En orden <b>1→2→3→4</b> y después <b>4→3→2→1</b>, cada jugador coloca <b>un Basecamp</b> y <b>una Ruta</b> pegada a él. Después de poner su segundo Basecamp, cada jugador <b>recibe 1 recurso por cada terreno productivo adyacente</b> a esa segunda colocación.</p>
+
+<h2><span class="n">06</span>El turno</h2>
+<div class="paso"><div class="num">1</div><div class="tx"><b>Condiciones.</b> Tira los dos dados.</div></div>
+<div class="paso"><div class="num">2</div><div class="tx"><b>Producción.</b> Todos los terrenos con ese número producen <b>para todos a la vez</b>.</div></div>
+<div class="paso"><div class="num">3</div><div class="tx"><b>Trade.</b> Puedes negociar con cualquier jugador, o cambiar en un Outpost.</div></div>
+<div class="paso"><div class="num">4</div><div class="tx"><b>Aventura.</b> Construye, explora, compra cartas, desarrolla.</div></div>
+
+<h3>Cuánto produce cada terreno</h3>
+<p>Por cada hexágono con el número que salió:</p>
+<table>
+  <tr><th>Tienes ahí…</th><th>Recibes</th></tr>
+  <tr><td>Un <b>Basecamp</b></td><td>1 recurso</td></tr>
+  <tr><td>Un <b>Adventure Hub</b></td><td><b>2 recursos</b></td></tr>
+</table>
+<p><b>Regla clave:</b> solo cobras <b>una vez por hexágono</b>, aunque tengas dos Basecamps en las esquinas de la misma ficha.</p>
+
+<h2><span class="n">07</span>Construir</h2>
+<p>En tu turno puedes construir lo que quieras, si te alcanzan los recursos:</p>
+
+<div class="fichas">
+  <div class="ficha">
+    <div class="ico">🛤️</div><div class="nm">RUTA</div>
+    <div class="ct">🪂 FLIGHT + 🏍️ RIDE<br><span style="color:var(--dim)">Se pone en un borde libre</span></div>
+  </div>
+  <div class="ficha">
+    <div class="ico">🏕️</div><div class="nm">BASECAMP</div>
+    <div class="ct">🪂 FLIGHT + 🏍️ RIDE<br>+ 🏄 BOARD + 🧗 CLIMB</div>
+  </div>
+  <div class="ficha">
+    <div class="ico">🏔️</div><div class="nm">ADVENTURE HUB</div>
+    <div class="ct">2 🧗 CLIMB + 3 🪽 JUMP<br><span style="color:var(--dim)">Mejora un Basecamp tuyo</span></div>
+  </div>
+  <div class="ficha">
+    <div class="ico">🃏</div><div class="nm">CARTA DE AVENTURA</div>
+    <div class="ct">🏄 BOARD + 🧗 CLIMB<br>+ 🪽 JUMP</div>
+  </div>
+  <div class="ficha">
+    <div class="ico">🏆</div><div class="nm">GREATEST TRAVERSE</div>
+    <div class="ct">+2 PA<br><span style="color:var(--dim)">La red de Rutas más larga (mínimo 5)</span></div>
+  </div>
+  <div class="ficha">
+    <div class="ico">🏅</div><div class="nm">XC MONSTER</div>
+    <div class="ct">+2 PA<br><span style="color:var(--dim)">La mayor red de Rutas del mapa (mínimo 5)</span></div>
+  </div>
+</div>
+
+<div class="caja ojo">
+  <div class="t">Dos reglas que no se pueden romper</div>
+  <b>1.</b> Un Basecamp o Hub debe estar conectado a tu red por una de tus Rutas.<br>
+  <b>2.</b> Entre dos Basecamps tuyos tiene que haber <b>al menos un cruce libre</b> — no pegados.
+</div>
+
+<h2><span class="n">08</span>El mal tiempo</h2>
+<p>Si la tirada suma <b>7</b>, el día se corta:</p>
+<div class="paso"><div class="num">1</div><div class="tx"><b>Nadie produce</b>, aunque tenga el número.</div></div>
+<div class="paso"><div class="num">2</div><div class="tx">Todo el que tenga <b>más de 7 recursos</b> descarta <b>la mitad</b> (redondeando hacia abajo). El jugador activo <b>no</b> descarta.</div></div>
+<div class="paso"><div class="num">3</div><div class="tx">El activo mueve el <b>Mal Tiempo</b> a cualquier terreno y <b>roba un recurso al azar</b> a un jugador que tenga Basecamp o Hub junto a ese terreno.</div></div>
+<p>Mientras el Mal Tiempo esté en un terreno, <b>ese terreno no produce</b> aunque salga su número.</p>
+
+<h2><span class="n">09</span>Comercio</h2>
+<ul>
+  <li><b>Entre jugadores</b>: el activo negocia libremente con quien quiera. Cualquier acuerdo vale. Los demás <b>no</b> pueden intercambiar entre ellos.</li>
+  <li><b>En un Outpost</b>: <b>3 iguales → 1 cualquiera</b> en un Outpost general, y <b>2 iguales → 1 cualquiera</b> en uno especializado (solo del deporte que indique).</li>
+</ul>
+
+<h2><span class="n">10</span>Cartas de Aventura</h2>
+<p>Puedes comprar <b>una por turno</b> (🏄 BOARD + 🧗 CLIMB + 🪽 JUMP). La usas <b>cuando quieras menos el mismo turno</b> en que la compras.</p>
+<table>
+  <tr><th>Carta</th><th>Cuántas</th><th>Efecto</th></tr>
+  <tr><td>🚁 <b>Rescate en heli</b></td><td>14</td><td>Mueve el Mal Tiempo a otro terreno y roba un recurso. (Es el "caballero".)</td></tr>
+  <tr><td>⭐ <b>Spot legendario</b></td><td>5</td><td>Vale <b>1 PA</b>. Lo guardas oculto hasta el final.</td></tr>
+  <tr><td>🛤️ <b>Dos rutas gratis</b></td><td>2</td><td>Construye 2 Rutas sin pagar.</td></tr>
+  <tr><td>🌤️ <b>Condiciones perfectas</b></td><td>2</td><td>Coge 2 recursos cualesquiera del banco.</td></tr>
+  <tr><td>🌀 <b>Convergencia</b></td><td>2</td><td>Nombra un deporte. Todos te dan <b>todos</b> sus recursos de ese deporte.</td></tr>
+</table>
+<p style="font-size:13px;color:var(--dim)">Total: <b>25 cartas</b>, como en el juego original.</p>
+
+<h2><span class="n">11</span>Los Outposts</h2>
+<p>Son los puertos. Se ponen en los bordes de la costa y hay <b>9</b>: <b>4 generales</b> (3:1) y <b>5 especializados</b> (2:1), uno por deporte. Para usarlos, <b>tienes que haber construido un Basecamp o Hub en uno de sus cruces</b>.</p>
+
+<h2><span class="n">12</span>Cuántos jugadores sois</h2>
+<p>EXTREME funciona de <b>2 a 6</b>. De 3 a 4 se juega tal cual. Para <b>5-6</b> se usa el sistema de <b>jugadores emparejados</b>; para <b>2</b> hay una variante.</p>
+
+<h3>🎯 3 o 4 jugadores — el juego tal cual</h3>
+<p>Todo lo de este reglamento, sin un solo cambio. <b>Así está diseñado el juego.</b></p>
+<p>Tablero de <b>19 hexágonos</b> y <b>18 discos</b> de número.</p>
+
+<h3>👨‍👩‍👦‍👦 5 o 6 jugadores — "jugadores emparejados"</h3>
+<p>Es el sistema de la extensión oficial. <b>Se juega por parejas de turno</b>, y no hace falta esperar cinco turnos para el tuyo.</p>
+
+<table>
+  <tr><th>Qué cambia</th><th>Cómo funciona</th></tr>
+  <tr><td><b>El tablero crece</b></td><td><b>30 hexágonos</b> (19 + 11 nuevos) y <b>28 discos</b> de número. Se añaden <b>4 piezas de marco</b> y <b>un segundo Día sin vuelo</b>.</td></tr>
+  <tr><td><b>Reparto nuevo</b></td><td>6 Cordillera 🪂 · 6 Costa/nieve 🏄 · 6 Paredes 🧗 · 5 Laderas 🏍️ · 5 Cumbres 🪽 · 2 Día sin vuelo 🌩️</td></tr>
+  <tr><td><b>Se juega por parejas</b></td><td><b>Jugador 1</b> hace Producción <b>+</b> Acción. <b>Jugador 2</b> hace <b>solo Acción</b>. Después se pasan los dados a la izquierda.</td></tr>
+  <tr><td><b>El jugador 2 no comercia</b></td><td>Solo puede cambiar en los <b>Outposts</b> — no con los demás jugadores.</td></tr>
+  <tr><td><b>Emparejamiento</b></td><td>El primer jugador coge el marcador <b>Jugador 1</b>. El <b>tercero a su izquierda</b> coge el <b>Jugador 2</b>.</td></tr>
+  <tr><td><b>Cartas</b></td><td>50 Cartas de Aventura y más fichas de recurso. Las cartas que compres como Jugador 2 <b>las puedes jugar cuando seas Jugador 1</b> (y al revés).</td></tr>
+  <tr><td><b>Ganar</b></td><td>Los dos pueden ganar. Si el <b>Jugador 1</b> llega a 10 PA, la partida <b>termina de inmediato</b> — el Jugador 2 ya no juega su Acción.</td></tr>
+</table>
+<div class="caja ojo">
+  <div class="t">Por qué funciona</div>
+  Con 6 jugadores, esperar cinco turnos mata el juego. Al ir <b>por parejas</b>, cada tirada interesa a dos jugadores y las rondas <b>vuelan</b>. Y el Jugador 2, al no producir, tiene que <b>aprovechar lo que el Jugador 1 dejó</b> — eso crea negociación de verdad.
+</div>
+
+<h3>👥 2 jugadores — "expedición ligera"</h3>
+<p>No existe extensión oficial para 2, así que esta es una variante propia:</p>
+<table>
+  <tr><th>Qué cambia</th><th>Cómo</th></tr>
+  <tr><td><b>Empiezas más fuerte</b></td><td>Cada uno coloca <b>1 Basecamp + 1 Adventure Hub</b> (en vez de 2 Basecamps). Produces el doble desde el minuto uno.</td></tr>
+  <tr><td><b>Outposts generosos</b></td><td>Los generales pasan a <b>2:1</b> en vez de 3:1.</td></tr>
+  <tr><td><b>Comercio abierto</b></td><td>Se puede intercambiar <b>fuera de tu turno</b>, una vez por ronda.</td></tr>
+  <tr><td><b>Ganar</b></td><td>Sigue siendo a <b>10 PA</b>.</td></tr>
+</table>
+<div class="caja ojo">
+  <div class="t">Por qué</div>
+  Con 2 jugadores <b>no hay comercio</b> y el mapa se queda vacío. Con un Hub inicial, los dos producen como dos y el juego corre.
+</div>
+
+<h2><span class="n">13</span>Cómo se gana</h2>
+<div class="caja clave">
+  <div class="t">Condición de victoria</div>
+  El primero en llegar a <b>10 Puntos de Aventura</b> en su turno, y revelarlos todos, gana.
+</div>
+<table>
+  <tr><th>De dónde salen</th><th>PA</th></tr>
+  <tr><td><b>Basecamp</b></td><td>1</td></tr>
+  <tr><td><b>Adventure Hub</b></td><td>2 (sustituye al 1 del Basecamp)</td></tr>
+  <tr><td><b>Spot legendario</b> (carta)</td><td>1</td></tr>
+  <tr><td><b>Greatest Traverse</b> (5+ rutas seguidas)</td><td>+2</td></tr>
+  <tr><td><b>XC Monster</b> (5+ rutas, la mayor red)</td><td>+2</td></tr>
+</table>
+
+<div class="final">
+  Un jugador puede ganar sin construir un solo Hub — pero no puede ganar sin haber <b>abierto Spots y conectado el mapa</b>. El que solo atesora recursos no llega a 10.
+</div>
+
+<h2><span class="n">14</span>Tu turno en una línea</h2>
+<div class="caja">
+  <b>1</b> Tira los dados → <b>2</b> todos producen → <b>3</b> comercia → <b>4</b> construye, explora y compra cartas.
+</div>
+
+<div class="final">
+  <b>EXTREME.</b> Explora. Rueda. Escala. Vuela. Salta.
+</div>
+
+<p style="font-size:11.5px;color:var(--dim);text-align:center;margin-top:30px">
+  Reglamento v1 · las mecánicas siguen el juego de mesa clásico de gestión y expansión de territorios.
+</p>
+
+</div>
+</body>
+</html>
