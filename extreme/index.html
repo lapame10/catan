@@ -179,7 +179,10 @@
     min-height:34px;text-shadow:0 2px 4px rgba(0,0,0,.95)}
   .fichaInfo b{color:#f0d899}
   .hex{cursor:pointer}
-  .toque{pointer-events:all;cursor:pointer}
+  .toque{pointer-events:all;cursor:pointer;animation:latido 1.15s ease-in-out infinite}
+  @keyframes latido{0%,100%{opacity:.55}50%{opacity:1}}
+  .toqVert{animation:latidoVert 1.15s ease-in-out infinite}
+  @keyframes latidoVert{0%,100%{transform:scale(1)}50%{transform:scale(1.22)}}
   .hex:active{opacity:.82}
   .nofly path{stroke-dasharray:5 4}
 
@@ -965,18 +968,18 @@ function pintaPartida(s){
     });
     if (modo === 'camino'){
       Object.entries(A).forEach(([kk, x]) => {
-        h += `<line class="toque" data-t="camino" data-k="${kk}" data-h="${x.hex}"
+        h += `<line class="toque toqCamino" data-t="camino" data-k="${kk}" data-h="${x.hex}"
                x1="${x.a[0]}" y1="${x.a[1]}" x2="${x.b[0]}" y2="${x.b[1]}"
-               stroke="rgba(240,216,153,.85)" stroke-width="5" stroke-linecap="round"
-               stroke-dasharray="7 5" style="filter:drop-shadow(0 0 5px rgba(240,216,153,.8))"/>`;
+               stroke="#5df08a" stroke-width="9" stroke-linecap="round"
+               stroke-dasharray="9 6" style="filter:drop-shadow(0 0 7px #2fd45f)"/>`;
       });
     } else {
       Object.entries(V).forEach(([k, x]) => {
         if (x.n < 2) return;
-        h += `<circle class="toque" data-t="${modo}" data-k="v#${x.x.toFixed(1)}#${x.y.toFixed(1)}" data-h="${x.hex}"
-               cx="${x.x}" cy="${x.y}" r="12"
-               fill="rgba(240,216,153,.42)" stroke="#f0d899" stroke-width="2"
-               style="filter:drop-shadow(0 0 6px rgba(240,216,153,.9))"/>`;
+        h += `<circle class="toque toqVert" data-t="${modo}" data-k="v#${x.x.toFixed(1)}#${x.y.toFixed(1)}" data-h="${x.hex}"
+               cx="${x.x}" cy="${x.y}" r="13"
+               fill="rgba(93,240,138,.55)" stroke="#eafff0" stroke-width="2.5"
+               style="filter:drop-shadow(0 0 8px #2fd45f)"/>`;
       });
     }
     h += '</g>';
