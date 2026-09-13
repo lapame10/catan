@@ -179,6 +179,7 @@
     min-height:34px;text-shadow:0 2px 4px rgba(0,0,0,.95)}
   .fichaInfo b{color:#f0d899}
   .hex{cursor:pointer}
+  .toque{pointer-events:all;cursor:pointer}
   .hex:active{opacity:.82}
   .nofly path{stroke-dasharray:5 4}
 
@@ -969,10 +970,13 @@ function pintaPartida(s){
     h += '</g>';
   }
   svg.insertAdjacentHTML('beforeend', h);
-  svg.querySelectorAll('.toque').forEach(t => t.onclick = (e) => {
-    e.stopPropagation();
-    coloca(t.dataset.t, t.dataset.k, +t.dataset.h);
-  });
+  /* UN SOLO manejador para todo el tablero. Asi da igual que sea un circulo o
+     una linea, y no importa que el SVG se repinte: siempre funciona. */
+  svg.onclick = (e) => {
+    const el = (e.target && e.target.closest) ? e.target.closest('.toque') : null;
+    if (!el) return;
+    coloca(el.dataset.t, el.dataset.k, +el.dataset.h);
+  };
 }
 
 /* ==========================================================================
