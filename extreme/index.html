@@ -509,8 +509,10 @@ function escuchar(cod){
         const quiero = s.colocPaso || 'base';
         if (modo !== quiero){ modo = quiero; }
       }
+      /* PRIMERO las posiciones y DESPUES pintar: los puntos para tocar salen
+         de POS, asi que si pinto antes de calcularlas no hay ningun punto. */
+      calculaPosiciones();
       pintaPartida(s);
-      calculaPosiciones();   /* siempre: el tablero puede ser de 19 o de 30 */
       return;
     }
 
