@@ -793,7 +793,10 @@ function valorDelCruce(k){
 }
 
 async function mueveElBot(s){
-  if (!s || botOcupado || !esElBot(s)) return;
+  window.__t = window.__t || [];
+  const T = m => { try { window.__t.push(m); if (window.__t.length > 40) window.__t.shift(); } catch(e){} };
+  T('IN bOc=' + botOcupado + ' esBot=' + esElBot(s) + ' fase=' + (s && s.fase));
+  if (!s || botOcupado || !esElBot(s)){ T('OUT pronto'); return; }
   botOcupado = true;
   const yoReal = yo;
   const botId = s.turno;
@@ -801,7 +804,8 @@ async function mueveElBot(s){
   try {
     await new Promise(r => setTimeout(r, 900 + Math.random()*1100));  /* piensa un poco */
     const s2 = await leerSala(salaCod);
-    if (!s2 || s2.turno !== botId) return;             /* otro se me adelanto */
+    T('leido fase=' + s2.fase + ' dados=' + (s2.dados ? s2.dados.total : 'no'));
+    if (!s2 || s2.turno !== botId){ T('OUT otro se adelanto'); return; }
 
     /* --- COLOCANDO --- */
     if (s2.fase === 'colocando'){
@@ -852,6 +856,7 @@ async function mueveElBot(s){
       return;
     }
     /* intenta construir algo, y si no, pasa */
+    T('V=' + Object.keys(V).length + ' A=' + Object.keys(A).length);
     const mis = (s2.recursos && s2.recursos[botId]) || {};
     const hay = (c, n) => (mis[c]||0) >= n;
     const mios = (s2.piezas && s2.piezas[botId]) || {};
@@ -867,8 +872,10 @@ async function mueveElBot(s){
       const sitios = Object.keys(V).filter(k => V[k].n>=2 && !camps.includes(k)
         && !(vecinos[k]||[]).some(v => camps.includes(v))
         && puntos.includes(k));
+      T('sitios=' + sitios.length);
       if (sitios.length){
         sitios.sort((a,b) => valorDelCruce(b) - valorDelCruce(a));
+        T('CONSTRUYE base ' + sitios[0]);
         await coloca('base', sitios[0], V[sitios[0]].hex);
         return;
       }
@@ -876,10 +883,13 @@ async function mueveElBot(s){
     if (hay('flight',1) && hay('ride',1)){
       const puntos = [...(mios.base||[]).map(b=>b.k), ...(mios.camino||[]).flatMap(r => r.k.split('|').map(e=>e.replace(/^a#/,'v#')))];
       const validas = Object.entries(A).filter(([kk]) => kk.split('|').some(e => puntos.includes(e.replace(/^a#/,'v#'))));
+      T('rutas=' + validas.length);
       if (validas.length){ await coloca('camino', validas[0][0], validas[0][1].hex); return; }
     }
+    T('PASA TURNO');
     await pasarTurno();                                /* si no puede, pasa */
   } finally {
+    T('FINALLY'); 
     yo = yoReal; botOcupado = false;
     /* ===== REPINTO COMO YO =====
        Mientras el bot jugaba, la pantalla se pudo pintar con SU identidad.
