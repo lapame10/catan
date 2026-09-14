@@ -599,34 +599,46 @@ function escuchar(cod){
        los que estan de verdad y el turno salta al siguiente vivo. */
     if (s.jugadores && (s.fase === 'colocando' || s.fase === 'juego')){
       const presentes = Object.keys(s.jugadores);
-      const ord = s.orden || [];
-      const cuadra = ord.length === presentes.length * 2 && ord.every(id => presentes.includes(id));
-      if (!cuadra && presentes.length >= 2){
-        const nuevoOrden = [...presentes, ...[...presentes].reverse()];
-        const upd = { orden: nuevoOrden };
-        if (!presentes.includes(s.turno)){
-          /* el turno era de un fantasma: se lo paso al siguiente que espera */
-          const i = ord.indexOf(s.turno);
-          let sig = null;
-          for (let k = 1; k <= ord.length && !sig; k++){
-            const cand = ord[(i + k + ord.length) % ord.length];
-            if (presentes.includes(cand)) sig = cand;
-          }
-          upd.turno = sig || nuevoOrden[0];
-          upd.colocPaso = null;
+      const ord = (s.orden || []).slice();
+      const upd = {};
+
+      /* ===== OJO: EL ORDEN **NO** SE REHAZ =====
+         El turno sale de orden[Math.floor(colocadoEn/2) % orden.length]. Si el
+         orden cambia de tamano o de orden en mitad de la colocacion, los turnos
+         se descuadran: unos ponen TRES Basecamps y otros solo uno. Por eso aqui
+         NO se rehace: el que se fue deja su hueco, y el que vuelve (o entra
+         nuevo) OCUPA ESE HUECO, en el mismo sitio. Asi los turnos cuadran. */
+      if (ord.length === presentes.length * 2){
+        const faltan = presentes.filter(id => !ord.includes(id));
+        if (faltan.length){
+          faltan.forEach(id => {
+            const hueco = ord.findIndex(x => !presentes.includes(x));
+            if (hueco >= 0) ord[hueco] = id;
+          });
+          upd.orden = ord;
         }
+      }
+
+      /* y el turno tiene que ser de alguien que este de verdad */
+      if (!presentes.includes(s.turno)){
+        const viejo = s.orden || [];
+        const i = viejo.indexOf(s.turno);
+        let sig = null;
+        for (let k = 1; k <= viejo.length && !sig; k++){
+          const cand = viejo[(i + k + viejo.length) % viejo.length];
+          if (presentes.includes(cand)) sig = cand;
+        }
+        upd.turno = sig || presentes[0];
+        upd.colocPaso = null;
+      }
+
+      if (Object.keys(upd).length){
         update(ref(db,'extreme/salas/'+cod), upd);
-        /* ===== Y SIGO CON LOS DATOS NUEVOS YA =====
-           Antes hacia return sin repintar, asi que la pantalla se quedaba como
-           estaba y parecia que "no te deja jugar" hasta que recargabas. */
+        /* y sigo con los datos nuevos YA (sin esperar al servidor), para que la
+           pantalla se pinte al momento y no haya que recargar */
         if (upd.orden) s.orden = upd.orden;
         if (upd.turno) s.turno = upd.turno;
         if ('colocPaso' in upd) s.colocPaso = upd.colocPaso;
-      } else if (!presentes.includes(s.turno)){
-        /* el orden cuadra, pero el turno es de alguien que ya no esta */
-        update(ref(db,'extreme/salas/'+cod), { turno: presentes[0], colocPaso: null });
-        s.turno = presentes[0];
-        s.colocPaso = null;
       }
     }
 
@@ -1230,6 +1242,19 @@ async function coloca(tipo, clave, hexIdx){
     piezas[yo.id].camino = piezas[yo.id].camino || [];
     const lista = tipo === 'camino' ? piezas[yo.id].camino : piezas[yo.id][tipo];
     if (lista.some(p => p.k === clave)){ aviso('Ya hay algo ahí',''); return; }
+
+    /* ===== EN LA COLOCACION CADA UNO PONE DOS =====
+       Un Basecamp en la ida y otro en la vuelta (con una Ruta cada uno).
+       Sin este tope, si el orden se descuadraba alguien acababa con TRES
+       Basecamps y los demas con uno. */
+    if (tipo === 'base' && piezas[yo.id].base.length >= 2){
+      aviso('Ya tienes tus 2 Basecamps',
+            'Se pone uno, y el segundo cuando vuelva tu turno. Ahora toca esperar.'); return;
+    }
+    if (tipo === 'camino' && piezas[yo.id].camino.length >= 2){
+      aviso('Ya tienes tus 2 Rutas',
+            'Cada Basecamp lleva una Ruta. Ya pusiste las dos de la colocación inicial.'); return;
+    }
 
     if (tipo === 'base'){
       const hayAlgo = Object.values(piezas).some(p =>
