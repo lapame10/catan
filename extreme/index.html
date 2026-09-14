@@ -848,11 +848,15 @@ $('bBot').onclick = async () => {
    esta variable para poder CANCELARLO en cuanto la partida empieza: asi puedes
    salir a contestar un mensaje sin que te boten de la mesa. */
 let miDesconexion = null;
+/* ===== NADIE SE EXPULSA AL SALIR DE LA PAGINA =====
+   Aqui habia un onDisconnect que BORRABA tu ficha en cuanto cerrabas la app o
+   te ibas a mirar un mensaje. Consecuencia: desaparecias de la mesa, el turno
+   quedaba apuntando a alguien que ya no estaba, y la partida se atascaba (los
+   datos lo confirmaron: habia turnos de ids que ya no existian).
+   DECIDIDO: no se expulsa a nadie. Si sales, sigues en la mesa; si vuelves,
+   entras directo a tu turno. */
 function registraDesconexion(cod, id){
-  try {
-    miDesconexion = onDisconnect(ref(db,'extreme/salas/'+cod+'/jugadores/'+id));
-    miDesconexion.remove();
-  } catch(e){}
+  /* A PROPOSITO NO HACE NADA. No volver a poner un onDisconnect aqui. */
 }
 
 let botOcupado = false;
