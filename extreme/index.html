@@ -1158,11 +1158,25 @@ const SECUENCIA_56 = SECUENCIA_CATAN.concat([2,6,11,3,8,9,10,4,5,12]);
    el recorrido es unico: no hay que adivinar angulos. */
 function ordenEnEspiral(hexes){
   const pos = hexes.map(h => posHex(h.c, h.i));
+  /* A PRUEBA DE BALAS: si alguna posicion no esta calculada, devuelvo el orden
+     natural en vez de reventar. Asi COMENZAR nunca se queda mudo. */
+  if (!pos.length || pos.some(p => !p || typeof p.cx !== 'number' || typeof p.cy !== 'number')){
+    return hexes.map((_, i) => i);
+  }
   const cx0 = (Math.min.apply(null, pos.map(p => p.cx)) + Math.max.apply(null, pos.map(p => p.cx))) / 2;
   const cy0 = (Math.min.apply(null, pos.map(p => p.cy)) + Math.max.apply(null, pos.map(p => p.cy))) / 2;
-  /* vecinos: los que estan a un lado de hexagono (distancia RY) */
-  const vec = pos.map((p, a) => pos.map((q, b) => b)
-    .filter(b => b !== a && Math.abs(Math.hypot(q.cx - p.cx, q.cy - p.cy) - RY) < RY * 0.15));
+  /* vecinos: los que estan a un lado de hexagono (distancia RY).
+     OJO: antes esto era pos.map((p,a) => pos.map((q,b) => b).filter(... q ...))
+     y 'q' quedaba fuera de su ambito: era un ReferenceError, y al pulsar
+     COMENZAR el juego reventaba en silencio. Por eso "no me deja empezar". */
+  const vec = pos.map((p, a) => {
+    const out = [];
+    pos.forEach((q, b) => {
+      if (b === a) return;
+      if (Math.abs(Math.hypot(q.cx - p.cx, q.cy - p.cy) - RY) < RY * 0.15) out.push(b);
+    });
+    return out;
+  });
   const dCentro = pos.map(p => Math.hypot(p.cx - cx0, p.cy - cy0));
   const anillo = dCentro.map(d => Math.round(d / RY));
   const anillos = [...new Set(anillo)].sort((a, b) => b - a);   /* el borde primero */
@@ -1244,7 +1258,11 @@ function crearTablero(nJug){
   /* ===== LOS NUMEROS, EN ESPIRAL (como el Catan de verdad) =====
      Los TERRENOS si se barajan, pero los NUMEROS no: van en el orden de
      siempre, en espiral desde arriba y en sentido horario, saltando el dia
-     sin vuelo. Y el dia sin vuelo va al CENTRO, como en el manual. */
+     sin vuelo. Y el dia sin vuelo va al CENTRO, como en el manual.
+     OJO: hay que llamar a ajustaLienzo() ANTES, porque el centro (CX, CY)
+     depende del tamano del tablero. Si no, las posiciones salian del tablero
+     anterior y la espiral se calculaba mal. */
+  ajustaLienzo();
   calculaPosiciones();
   const posH = hs.map(h => posHex(h.c, h.i));
   const cxa = (Math.min.apply(null, posH.map(p => p.cx)) + Math.max.apply(null, posH.map(p => p.cx))) / 2;
