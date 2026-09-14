@@ -741,6 +741,10 @@ async function mueveElBot(s){
     $('bPasar').click();                               /* si no puede, pasa */
   } finally {
     yo = yoReal; botOcupado = false;
+    /* Si le sigue tocando (o le toca otra vez), que CONTINUE: el aviso del
+       servidor llego mientras el bot pensaba y se perdio. Sin esto ponia una
+       pieza y se quedaba parado. */
+    setTimeout(() => leerSala(salaCod).then(x => { if (x) mueveElBot(x); }), 500);
   }
 }
 
