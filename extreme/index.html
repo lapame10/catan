@@ -342,6 +342,11 @@
   .pcBtns .btn{width:100%}
   .pc .btn{max-width:100%}
 
+  /* ===== SALIR DE LA PARTIDA ===== */
+  .btn.salir{background:rgba(58,20,16,.82);color:#e0b3aa;font-size:12px;padding:9px 12px;
+    margin-top:12px;box-shadow:0 0 0 1.5px rgba(196,88,68,.5), 0 3px 9px rgba(0,0,0,.7)}
+  .btn.salir:hover{color:#ffd6cc;box-shadow:0 0 0 2px rgba(226,108,86,.9), 0 3px 9px rgba(0,0,0,.7)}
+
   /* ===== LA GUIA: que terreno da que recurso (cerrada no ocupa nada) ===== */
   .guia{margin:9px auto 0;max-width:344px;background:rgba(26,16,9,.78);
     border-radius:11px;box-shadow:0 0 0 1.5px rgba(201,165,88,.42);overflow:hidden}
@@ -436,6 +441,7 @@
     <div class="etiq"><span class="rotul">Pilotos</span></div>
     <div id="lista" style="margin-top:10px"></div>
     <button class="btn" id="bEmpezar" disabled>FALTAN PILOTOS</button>
+    <button class="btn alt" id="bSalir4">🚪 SALIR DE LA PARTIDA</button>
     <div class="pie" id="notaEsp"></div>
   </div>
 
@@ -473,6 +479,7 @@
       <button class="btn alt" id="bComercio">🔄 COMERCIAR</button>
       <button class="btn alt" id="bPasar">PASAR EL TURNO</button>
     </div>
+    <button class="btn salir" id="bSalir5">🚪 SALIR DE LA PARTIDA</button>
 
     <!-- LAS OFERTAS QUE HAY EN LA MESA -->
     <div id="ofertas"></div>
@@ -1560,6 +1567,36 @@ async function revisaLogros(s){
   }
 }
 $('ganaVer').onclick = () => $('gana').classList.remove('on');
+
+/* ===== SALIR DE LA PARTIDA =====
+   Sin esto, la sesion guardada te devolvia SIEMPRE a la misma sala y no habia
+   forma de empezar otra. Aqui te quitas de la mesa y vuelves a la portada. */
+async function abandona(){
+  const s = salaCod ? await leerSala(salaCod) : null;
+  const yaEmpezo = s && (s.fase === 'colocando' || s.fase === 'juego');
+  if (!confirm(yaEmpezo
+      ? '¿Salir de esta partida?\n\nLa partida sigue para los demás.'
+      : '¿Salir de esta partida?')) return;
+  const codViejo = salaCod, miId = yo && yo.id;
+  try {
+    if (miDesconexion){ miDesconexion.cancel(); miDesconexion = null; }
+    if (codViejo && miId){
+      await set(ref(db,'extreme/salas/'+codViejo+'/jugadores/'+miId), null);
+      const otros = Object.keys((s && s.jugadores) || {}).filter(id => id !== miId);
+      if (s && s.anfitrion === miId){
+        if (otros.length) await update(ref(db,'extreme/salas/'+codViejo), { anfitrion: otros[0] });
+        else await set(ref(db,'extreme/salas/'+codViejo), null);   /* estaba solo: fuera la sala */
+      }
+    }
+  } catch(e){}
+  try { localStorage.removeItem('extreme_yo'); } catch(e){}
+  if (oyente) oyente();
+  oyente = null; yo = null; salaCod = null; esAnfitrion = false;
+  ponModo(null);
+  pant('p1');
+}
+$('bSalir4').onclick = abandona;
+$('bSalir5').onclick = abandona;
 
 /* ===== CONSTRUIR: eliges que, y tocas el tablero ===== */
 let modo = null;   // 'camino' | 'base' | 'hub' | null
