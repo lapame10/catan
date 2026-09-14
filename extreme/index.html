@@ -848,7 +848,7 @@ async function mueveElBot(s){
 
     /* --- YA JUGANDO --- */
     if (!s2.dados){
-      $('bDados').click();                             /* tira */
+      await tirarDados();                              /* tira (aunque su boton este apagado) */
       return;
     }
     /* intenta construir algo, y si no, pasa */
@@ -878,7 +878,7 @@ async function mueveElBot(s){
       const validas = Object.entries(A).filter(([kk]) => kk.split('|').some(e => puntos.includes(e.replace(/^a#/,'v#'))));
       if (validas.length){ await coloca('camino', validas[0][0], validas[0][1].hex); return; }
     }
-    $('bPasar').click();                               /* si no puede, pasa */
+    await pasarTurno();                                /* si no puede, pasa */
   } finally {
     yo = yoReal; botOcupado = false;
     /* ===== REPINTO COMO YO =====
@@ -1203,7 +1203,7 @@ function aviso(titulo, texto, ms){
 $('aviso').onclick = () => $('aviso').classList.remove('on');
 
 /* ===== TIRAR LOS DADOS Y COBRAR ===== */
-$('bDados').onclick = async () => {
+async function tirarDados(){
   const s = await leerSala(salaCod);
   if (!s || s.turno !== yo.id || s.dados) return;
   const d1 = 1 + Math.floor(Math.random()*6), d2 = 1 + Math.floor(Math.random()*6);
@@ -1233,7 +1233,10 @@ $('bDados').onclick = async () => {
       }).join('  ·  ')
     : 'nadie tiene nada pegado al ' + total;
   aviso('🎲 ' + d1 + ' + ' + d2 + ' = ' + total, quien, 3200);
-};
+}
+/* El boton usa la MISMA funcion. Asi el BOT puede tirar sin depender del boton:
+   los botones se apagan cuando no es tu turno, y el bot juega "de tapadillo". */
+$('bDados').onclick = tirarDados;
 
 /* ===== CONSTRUIR: eliges que, y tocas el tablero ===== */
 let modo = null;   // 'camino' | 'base' | 'hub' | null
@@ -1870,7 +1873,7 @@ function calculaPosiciones(){
 }
 
 /* el boton de pasar: rota al siguiente piloto y limpia los dados */
-$('bPasar').onclick = async () => {
+async function pasarTurno(){
   if (!salaCod) return;
   const s = await leerSala(salaCod);
   if (!s || s.turno !== yo.id) return;
@@ -1878,7 +1881,8 @@ $('bPasar').onclick = async () => {
   const sig = ids[(ids.indexOf(yo.id) + 1) % ids.length];
   ponModo(null);
   await update(ref(db,'extreme/salas/'+salaCod), { turno: sig, dados: null });
-};
+}
+$('bPasar').onclick = pasarTurno;
 
 $('bEmpezar').onclick = async () => {
   if (!salaCod) return;
