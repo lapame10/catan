@@ -518,6 +518,18 @@
   <button class="btn" id="ganaVer">SEGUIR MIRANDO</button>
 </div></div>
 
+<!-- LO QUE TE OFRECEN: salta a la pantalla y hay que responder -->
+<div class="panel" id="panelOferta">
+  <div class="pc">
+    <h3 id="ofTit">🔄 Te ofrecen un trato</h3>
+    <div class="pcPista" id="ofTxt"></div>
+    <div class="pcBtns">
+      <button class="btn" id="ofSi">ACEPTAR</button>
+      <button class="btn alt" id="ofNo">RECHAZAR</button>
+    </div>
+  </div>
+</div>
+
 <!-- AVISO DE LO QUE PASA (dados, recursos, errores) -->
 <div class="aviso" id="aviso"><div class="caja" id="avisoTx"></div></div>
 
@@ -2147,6 +2159,42 @@ function pintaOfertas(s){
   el.querySelectorAll('[data-a]').forEach(b => b.onclick = () => responde(b.dataset.a, true));
   el.querySelectorAll('[data-r]').forEach(b => b.onclick = () => responde(b.dataset.r, false));
   el.querySelectorAll('[data-x]').forEach(b => b.onclick = () => responde(b.dataset.x, null));
+
+  /* ===== TE SALTAN A LA PANTALLA, Y HAY QUE RESPONDER =====
+     Antes las ofertas salian en una lista debajo del tablero, y era facil no
+     verlas y seguir jugando. Ahora, si alguien te ofrece un trato, te salta un
+     aviso que TAPA TODO: tienes que aceptar o rechazar antes de seguir. */
+  const pv = $('panelOferta');
+  if (!pv) return;
+  const otras = claves.filter(k => of[k].de !== yo.id);
+  const mias  = claves.filter(k => of[k].de === yo.id);
+  if (otras.length){
+    const k = otras[0], o = of[k];
+    const puedo = Object.entries(o.pido).every(([r,n]) =>
+      ((s.recursos && s.recursos[yo.id] && s.recursos[yo.id][r]) || 0) >= n);
+    $('ofTit').textContent = '🔄 ' + (nombres[o.de] || '?') + ' te ofrece un trato';
+    $('ofTxt').innerHTML = 'Te da <b>' + txt(o.doy) + '</b><br>y quiere <b>' + txt(o.pido) + '</b>' +
+      (puedo ? '' : '<br><br>⚠️ <b>No te llega lo que pide</b> — tendrás que rechazar') +
+      (otras.length > 1 ? '<br><br>(y ' + (otras.length - 1) + ' oferta más esperando)' : '');
+    $('ofSi').style.display = '';
+    $('ofSi').disabled = !puedo;
+    $('ofSi').textContent = puedo ? 'ACEPTAR' : 'NO TE LLEGA';
+    $('ofNo').textContent = 'RECHAZAR';
+    $('ofSi').onclick = () => responde(k, true);
+    $('ofNo').onclick = () => responde(k, false);
+    pv.classList.add('on');
+  } else if (mias.length && !$('panelComercio').classList.contains('on')){
+    const o = of[mias[0]];
+    $('ofTit').textContent = '⏳ Tu oferta está en la mesa';
+    $('ofTxt').innerHTML = 'Das <b>' + txt(o.doy) + '</b> y quieres <b>' + txt(o.pido) +
+      '</b><br>Esperando a que alguien la acepte…';
+    $('ofSi').style.display = 'none';
+    $('ofNo').textContent = 'RETIRAR MI OFERTA';
+    $('ofNo').onclick = () => responde(mias[0], null);
+    pv.classList.add('on');
+  } else {
+    pv.classList.remove('on');
+  }
 }
 
 /* aceptar, rechazar o retirar una oferta */
