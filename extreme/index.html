@@ -298,6 +298,30 @@
   .oferta .si{background:linear-gradient(180deg,#79b93a,#3d7016);color:#fff}
   .oferta .no{background:linear-gradient(180deg,#8a8178,#4a453e);color:#f0e2c4}
   .oferta .mia{font-size:11px;color:#c9a558;text-align:center}
+  /* ===== LA GUIA: que terreno da que recurso (cerrada no ocupa nada) ===== */
+  .guia{margin:9px auto 0;max-width:344px;background:rgba(26,16,9,.78);
+    border-radius:11px;box-shadow:0 0 0 1.5px rgba(201,165,88,.42);overflow:hidden}
+  .guia summary{list-style:none;cursor:pointer;padding:10px 13px;font-size:12px;
+    font-weight:800;color:#f0d899;letter-spacing:.4px;text-align:center;
+    text-shadow:0 1px 3px rgba(0,0,0,.9)}
+  .guia summary::-webkit-details-marker{display:none}
+  .guia summary::after{content:' ▾';opacity:.75}
+  .guia[open] summary::after{content:' ▴'}
+  .guia[open] summary{border-bottom:1px solid rgba(201,165,88,.25)}
+  .guiaFilas{padding:2px 9px 9px}
+  .gf{display:flex;align-items:center;gap:9px;padding:7px 4px;
+    border-top:1px solid rgba(201,165,88,.15)}
+  .gf:first-child{border-top:none}
+  .gfHex{width:40px;height:40px;object-fit:cover;border-radius:6px;flex:0 0 auto;
+    box-shadow:0 1px 4px rgba(0,0,0,.75), 0 0 0 1px rgba(201,165,88,.4)}
+  .gfTxt{flex:1;font-size:11px;color:#f0e2c4;line-height:1.35;text-align:left;
+    text-shadow:0 1px 2px rgba(0,0,0,.9)}
+  .gfTxt b{display:block;font-size:11.5px;color:#fff}
+  .gfTxt i{color:#f0d899;font-style:normal;font-weight:800}
+  .gfRec{width:27px;height:40px;object-fit:cover;border-radius:5px;flex:0 0 auto;
+    box-shadow:0 1px 4px rgba(0,0,0,.75), 0 0 0 1px rgba(201,165,88,.4)}
+  .gfMal{display:flex;align-items:center;justify-content:center;font-size:19px;
+    box-shadow:none!important;background:none}
 </style>
 </head>
 <body>
@@ -381,6 +405,13 @@
     <div class="recursos" id="recursos"></div>
 
     <div class="mapa"><svg id="tablero" viewBox="0 0 466 500"></svg></div>
+
+    <!-- LA GUIA: que terreno da que recurso. Cerrada no ocupa nada. -->
+    <details class="guia" id="guia">
+      <summary>📖 ¿Qué me da cada terreno?</summary>
+      <div class="guiaFilas" id="guiaFilas"></div>
+    </details>
+
     <div class="fichaInfo" id="info"></div>
     <div class="err" id="err5"></div>
 
@@ -1193,7 +1224,6 @@ function pintaPartida(s){
     }
     h += '</g>';
   }
-  /* ===== LOS OUTPOSTS (los puertos) ===== */
   h += '<g class="capaOutposts">';
   OUTPOSTS.forEach(o => {
     const col = o.r ? (RECURSOS.find(x => x.id === o.r) || {}) : {};
@@ -1417,6 +1447,32 @@ function tasaDe(s, rid){
   });
   return tasa;
 }
+
+/* ===== LA GUIA: que terreno da que recurso ===== */
+const TERRENOS = [
+  { id:'cordillera', n:'Cordillera de vuelo', r:'flight' },
+  { id:'costa',      n:'Costa y nieve',       r:'board'  },
+  { id:'laderas',    n:'Laderas de enduro',   r:'ride'   },
+  { id:'pared',      n:'Paredes y canteras',  r:'climb'  },
+  { id:'cumbres',    n:'Cumbres de salto',    r:'jump'   },
+  { id:'nofly',      n:'Día sin vuelo',       r:null     },
+];
+function pintaGuia(){
+  const el = $('guiaFilas');
+  if (!el) return;
+  el.innerHTML = TERRENOS.map(t => {
+    const rec = t.r ? (RECURSOS.find(x => x.id === t.r) || {}) : null;
+    return `<div class="gf">
+      <img class="gfHex" src="arte/hex_${t.id}.png" alt="${t.n}">
+      <div class="gfTxt"><b>${t.n}</b>${
+        rec ? `<span>te da <i>${rec.n}</i></span>` : '<span>no produce · aquí vive el <b>Mal Tiempo</b></span>'
+      }</div>
+      ${rec ? `<img class="gfRec" src="${rec.mini}" alt="${rec.n}">`
+            : `<span class="gfRec gfMal">🌩️</span>`}
+    </div>`;
+  }).join('');
+}
+pintaGuia();   /* la relleno una vez: no cambia durante la partida */
 
 /* todas MIS piezas en una lista plana: {t, k, v} */
 function piezasDe(s){
