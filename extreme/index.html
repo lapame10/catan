@@ -697,6 +697,27 @@ function pintaTablero(hexes){
   /* la forma del tablero depende de cuantos hexagonos haya: 19 o 30 */
   ponTablero(hexes.length > 19 ? 5 : 2);
   ajustaLienzo();
+  /* los cruces del panal: hacen falta para colocar los outposts */
+  if (!Object.keys(V).length || !V_OUT){
+    V = {}; A = {};
+    hexes.forEach((hh, idx) => {
+      const { cx, cy } = posHex(hh.c, hh.i);
+      const pts = [];
+      for (let i=0;i<6;i++){ const a=Math.PI/180*(60*i); pts.push([cx+R*Math.cos(a), cy+R*Math.sin(a)]); }
+      pts.forEach(p => {
+        const k = `v#${p[0].toFixed(1)}#${p[1].toFixed(1)}`;
+        if (!V[k]) V[k] = { x:p[0], y:p[1], n:0, hex:idx };
+        V[k].n++;
+      });
+      for (let i=0;i<6;i++){
+        const a = pts[i], b = pts[(i+1)%6];
+        const k = `a#${a[0].toFixed(1)}#${a[1].toFixed(1)}|a#${b[0].toFixed(1)}#${b[1].toFixed(1)}`;
+        if (!A[k]) A[k] = { a, b, hex: idx };
+      }
+    });
+    V_OUT = true;
+    ponOutposts();
+  }
   /* flat-top: el ancho es raiz(3)*R y el alto 2R. Los tenia al reves. */
   const HX = 2*R, HY = Math.sqrt(3)*R;
 
@@ -1084,7 +1105,7 @@ function pintaPartida(s){
   /* capa de puntos para TOCAR (solo visible cuando estas construyendo) */
   if (modo && s.turno === yo.id){
     h += '<g class="capaTocar">';
-    const V = {}, A = {};
+    V = {}; A = {};
     (s.hexes||[]).forEach((hh, idx) => {
       const { cx, cy } = posHex(hh.c, hh.i);
       const pts = [];
@@ -1172,6 +1193,21 @@ function pintaPartida(s){
     }
     h += '</g>';
   }
+  /* ===== LOS OUTPOSTS (los puertos) ===== */
+  h += '<g class="capaOutposts">';
+  OUTPOSTS.forEach(o => {
+    const col = o.r ? (RECURSOS.find(x => x.id === o.r) || {}) : {};
+    h += `<g class="outpost">
+      <circle cx="${o.x.toFixed(1)}" cy="${o.y.toFixed(1)}" r="15"
+        fill="#2a1d12" stroke="#c9a558" stroke-width="2.2"
+        style="filter:drop-shadow(0 2px 5px rgba(0,0,0,.85))"/>
+      <text x="${o.x.toFixed(1)}" y="${(o.y-1).toFixed(1)}" text-anchor="middle"
+        style="font-family:Anton,sans-serif;font-size:11px;fill:#f0d899">${o.t}</text>
+      ${o.r ? `<text x="${o.x.toFixed(1)}" y="${(o.y+9.5).toFixed(1)}" text-anchor="middle"
+        style="font-family:Anton,sans-serif;font-size:7.5px;fill:#fff">${(col.n||'').slice(0,4)}</text>` : ''}
+    </g>`;
+  });
+  h += '</g>';
   svg.insertAdjacentHTML('beforeend', h);
   /* UN SOLO manejador para todo el tablero. Asi da igual que sea un circulo o
      una linea, y no importa que el SVG se repinte: siempre funciona. */
@@ -1249,7 +1285,11 @@ async function pintaPanel(){
   pinta('pido', pido, 'pido');
   const nDoy = Object.values(doy).reduce((a,b)=>a+b,0);
   const nPido = Object.values(pido).reduce((a,b)=>a+b,0);
-  $('pcBanco').textContent = nDoy && nPido ? `BANCO (${nDoy}:${nPido})` : 'AL BANCO (4:1)';
+  /* el boton del banco ensena TU mejor tasa (con outpost baja) */
+  const mejor = RECURSOS.reduce((m, c) => Math.min(m, tasaDe(s, c.id)), 4);
+  $('pcBanco').textContent = nDoy && nPido
+    ? `BANCO (${nDoy}:${nPido})`
+    : (mejor < 4 ? `AL BANCO (${mejor}:1) 🏕️` : 'AL BANCO (4:1)');
 }
 
 /* al banco: 4 de uno por 1 de otro */
@@ -1257,18 +1297,23 @@ $('pcBanco').onclick = async () => {
   const d = Object.keys(doy), q = Object.keys(pido);
   const nDoy = Object.values(doy).reduce((a,b)=>a+b,0);
   const nPido = Object.values(pido).reduce((a,b)=>a+b,0);
-  if (d.length !== 1 || q.length !== 1 || nPido !== 1 || nDoy !== 4){
-    aviso('Al banco: 4 por 1', 'Elige <b>4 de UN recurso</b> que das, y <b>1</b> que quieres.'); return;
-  }
   const s = await leerSala(salaCod);
+  /* la tasa depende de tus outposts: 4:1 normal, 3:1 o 2:1 si tienes puerto */
+  const cuantos = (d.length === 1) ? tasaDe(s, d[0]) : 4;
+  if (d.length !== 1 || q.length !== 1 || nPido !== 1 || nDoy !== cuantos){
+    const titulo = cuantos < 4 ? 'Tu outpost te deja ' + cuantos + ':1' : 'Al banco: 4 por 1';
+    aviso(titulo, `Elige <b>${cuantos} de UN recurso</b> que das, y <b>1</b> que quieres.`); return;
+  }
   const mis = (s.recursos && s.recursos[yo.id]) || {};
-  if ((mis[d[0]]||0) < 4){ aviso('No te llega', 'Necesitas 4 ' + d[0].toUpperCase()); return; }
+  if ((mis[d[0]]||0) < cuantos){ aviso('No te llega', 'Necesitas ' + cuantos + ' ' + d[0].toUpperCase()); return; }
   const rec = Object.assign({}, s.recursos || {});
   rec[yo.id] = Object.assign({}, mis);
-  rec[yo.id][d[0]] -= 4; rec[yo.id][q[0]] = (rec[yo.id][q[0]]||0) + 1;
+  rec[yo.id][d[0]] -= cuantos; rec[yo.id][q[0]] = (rec[yo.id][q[0]]||0) + 1;
   await update(ref(db,'extreme/salas/'+salaCod), { recursos: rec });
   $('panelComercio').classList.remove('on');
-  aviso('🔄 Cambio con el banco', `Diste 4 ${d[0].toUpperCase()} y cogiste 1 ${q[0].toUpperCase()}`);
+  aviso('🔄 Cambio con el banco',
+        `Diste ${cuantos} ${d[0].toUpperCase()} y cogiste 1 ${q[0].toUpperCase()}` +
+        (cuantos < 4 ? ' 🏕️ ¡tu outpost!' : ''));
 };
 
 /* ofrecer a los demas */
@@ -1358,6 +1403,21 @@ function distPuntoSegmento(px, py, x1, y1, x2, y2){
   return Math.hypot(px - (x1+t*dx), py - (y1+t*dy));
 }
 
+/* ===== LA TASA DE CAMBIO =====
+   Sin outpost: 4 por 1. Con un outpost 3:1: 3 por 1. Con el 2:1 de ese
+   deporte: 2 por 1. Asi los puertos sirven para algo. */
+function tasaDe(s, rid){
+  const p = (s.piezas && s.piezas[yo.id]) || {};
+  const mios = [...(p.base||[]), ...(p.hub||[])].map(x => x.k);
+  let tasa = 4;
+  OUTPOSTS.forEach(o => {
+    if (!mios.includes(o.k)) return;
+    if (o.t === '3:1' && tasa > 3) tasa = 3;
+    if (o.t === '2:1' && o.r === rid && tasa > 2) tasa = 2;
+  });
+  return tasa;
+}
+
 /* todas MIS piezas en una lista plana: {t, k, v} */
 function piezasDe(s){
   const p = (s.piezas && s.piezas[yo.id]) || {};
@@ -1368,8 +1428,43 @@ function piezasDe(s){
   return out;
 }
 
-/* la posicion de cada hexagono en el mapa */
-const POS = [];
+/* ===== LOS OUTPOSTS (los puertos de Catan) =====
+   Van en los cruces del BORDE de la isla. 4 son 3:1 (cambias 3 de cualquiera
+   por 1) y 5 son 2:1 de un deporte concreto. Si tienes un Basecamp ahi,
+   comercias mejor. */
+const TIPOS_OUTPOST = [
+  { t:'3:1' }, { t:'2:1', r:'flight' }, { t:'3:1' }, { t:'2:1', r:'board' },
+  { t:'3:1' }, { t:'2:1', r:'ride' }, { t:'3:1' }, { t:'2:1', r:'climb' },
+  { t:'2:1', r:'jump' },
+];
+let OUTPOSTS = [];      /* [{ k:'v#x#y', x, y, tipo, r }] */
+/* el panal: cruces (V) y aristas (A). Son globales porque los usan tanto el
+   tablero como los outposts. */
+let V = {}, A = {}, V_OUT = false;
+
+/* reparto los 9 outposts por el borde de la isla, bien separados */
+function ponOutposts(){
+  const borde = [];
+  Object.entries(V).forEach(([k, x]) => {
+    if (x.n === 2 && !cercaDelCentro(x)) borde.push({ k, x: x.x, y: x.y });
+    if (x.n === 1) borde.push({ k, x: x.x, y: x.y });
+  });
+  /* me quedo con los del perimetro exterior, separados entre si */
+  const cx = CX, cy = CY;
+  borde.sort((a,b) => Math.atan2(a.y-cy, a.x-cx) - Math.atan2(b.y-cy, b.x-cx));
+  const elegidos = [];
+  const sep = Math.min(...(COLS.length > 5 ? [70] : [62]));
+  borde.forEach(b => {
+    if (elegidos.every(e => Math.hypot(e.x-b.x, e.y-b.y) > sep)) elegidos.push(b);
+  });
+  /* si salen de mas o de menos, me quedo con 9 repartidos */
+  const paso = Math.max(1, Math.floor(elegidos.length / 9));
+  const nueve = [];
+  for (let i=0; i<elegidos.length && nueve.length<9; i+=paso) nueve.push(elegidos[i]);
+  OUTPOSTS = nueve.slice(0,9).map((b, i) => Object.assign({}, b, TIPOS_OUTPOST[i % TIPOS_OUTPOST.length]));
+  return OUTPOSTS;
+}
+function cercaDelCentro(x){ return Math.hypot(x.x-CX, x.y-CY) < Math.min(...COLS)*RY*0.42; }
 function posHex(c, i){
   return POS[c*10 + i];
 }
