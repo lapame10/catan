@@ -388,6 +388,7 @@
       <div class="mini" id="cuantos">esperando pilotos…</div>
     </div>
     <button class="btn alt" id="bLink">📤 COMPARTIR EL LINK</button>
+    <button class="btn alt" id="bBot">🤖 AÑADIR UN BOT</button>
     <div class="etiq"><span class="rotul">Pilotos</span></div>
     <div id="lista" style="margin-top:10px"></div>
     <button class="btn" id="bEmpezar" disabled>FALTAN PILOTOS</button>
@@ -577,6 +578,9 @@ function escuchar(cod){
       pant('p5');
       if (s.hexes) pintaTablero(s.hexes);
       /* en la colocacion inicial, el modo lo manda el juego, no tu */
+      /* ===== SI LE TOCA A UN BOT, LO MUEVE QUIEN ESTE MIRANDO ===== */
+      mueveElBot(s);
+
       if (s.fase === 'colocando' && s.turno === yo.id){
         const quiero = s.colocPaso || 'base';
         if (modo !== quiero){ modo = quiero; }
@@ -606,6 +610,138 @@ function escuchar(cod){
       ? (puedo ? 'Cuando quieras, dale a EMPEZAR' : 'Hacen falta al menos 2 pilotos')
       : 'El anfitrión arranca la partida';
   });
+}
+
+/* ===== LOS BOTS =====
+   Un bot es un piloto normal con la marca esBot. Juega solo: coloca, tira,
+   cobra y construye. Lo mueve cualquiera que tenga la app abierta, asi no
+   hace falta un servidor. */
+const NOMBRES_BOT = ['Ana','Beto','Ciro','Duna','Eri','Fabo'];
+$('bBot').onclick = async () => {
+  const s = await leerSala(salaCod);
+  if (!s) return;
+  const js = s.jugadores || {};
+  if (Object.keys(js).length >= 6){ aviso('Ya sois 6', 'No caben más pilotos.'); return; }
+  const usados = Object.values(js).map(j => j.color);
+  const libre = COLORES.map(c=>c.id).filter(c => !usados.includes(c))[0];
+  if (!libre){ aviso('Sin colores libres', 'No caben más pilotos.'); return; }
+  const ya = Object.values(js).filter(j => j.esBot).length;
+  const nombre = '🤖 ' + (NOMBRES_BOT[ya] || ('Bot ' + (ya+1)));
+  const id = 'bot' + Date.now() + Math.floor(Math.random()*90);
+  await set(ref(db,'extreme/salas/'+salaCod+'/jugadores/'+id), { nombre, color: libre, esBot: true });
+  aviso('🤖 ¡Bot añadido!', nombre + ' está en la mesa y juega solo.');
+};
+
+/* ===== EL CEREBRO DEL BOT =====
+   Cuando le toca a un bot, lo mueve cualquiera que tenga la app abierta (no
+   hace falta servidor). El bot usa las MISMAS funciones que tu, asi que no
+   puede hacer trampas: juega con las reglas de todos. */
+let botOcupado = false;
+function esElBot(s){ return !!(s && s.jugadores && (s.jugadores[s.turno] || {}).esBot); }
+
+/* cuanto vale cada cruce: la suma de los pips de los terrenos que toca */
+function valorDelCruce(k){
+  let v = 0;
+  Object.entries(A).forEach(([kk, x]) => {
+    if (!kk.split('|').some(e => e.replace(/^a#/, 'v#') === k)) return;
+    const h = HEXES[x.hex];
+    if (!h || !h.num) return;
+    v += PIPS[h.num] || 0;
+    if (OUTPOSTS.some(o => o.k === k)) v += 2;      /* un outpost suma */
+  });
+  return v;
+}
+
+async function mueveElBot(s){
+  if (!s || botOcupado || !esElBot(s)) return;
+  botOcupado = true;
+  const yoReal = yo;
+  const botId = s.turno;
+  yo = { id: botId, nombre: s.jugadores[botId].nombre, color: s.jugadores[botId].color };
+  try {
+    await new Promise(r => setTimeout(r, 900 + Math.random()*1100));  /* piensa un poco */
+    const s2 = await leerSala(salaCod);
+    if (!s2 || s2.turno !== botId) return;             /* otro se me adelanto */
+
+    /* --- COLOCANDO --- */
+    if (s2.fase === 'colocando'){
+      const modo = s2.colocPaso || 'base';
+      const P = s2.piezas || {};
+      const TODAS = [];
+      Object.values(P).forEach(pp => {
+        (pp.base||[]).forEach(x => TODAS.push({ t:'base', k:x.k }));
+        (pp.hub ||[]).forEach(x => TODAS.push({ t:'hub',  k:x.k }));
+        (pp.camino||[]).forEach(x => TODAS.push({ t:'camino', k:x.k }));
+      });
+      const camps = TODAS.filter(x => x.t==='base'||x.t==='hub').map(x => x.k);
+      const vecinos = {};
+      Object.keys(A).forEach(kk => {
+        const p = kk.split('|');
+        const v1 = p[0].replace(/^a#/,'v#'), v2 = p[1].replace(/^a#/,'v#');
+        (vecinos[v1]=vecinos[v1]||[]).push(v2); (vecinos[v2]=vecinos[v2]||[]).push(v1);
+      });
+      if (modo === 'base'){
+        const libres = Object.keys(V).filter(k => V[k].n >= 2
+          && !camps.includes(k)
+          && !(vecinos[k]||[]).some(v => camps.includes(v)));
+        if (!libres.length) return;
+        libres.sort((a,b) => valorDelCruce(b) - valorDelCruce(a));
+        const elegido = libres[0];
+        await coloca('base', elegido, V[elegido].hex);
+      } else {
+        const mios = (P[botId]||{});
+        const puntos = [
+          ...(mios.base||[]).map(b=>b.k), ...(mios.hub||[]).map(b=>b.k),
+          ...(mios.camino||[]).flatMap(r => r.k.split('|').map(e => e.replace(/^a#/,'v#')))
+        ];
+        const validas = Object.entries(A).filter(([kk]) =>
+          kk.split('|').some(e => puntos.includes(e.replace(/^a#/,'v#'))));
+        if (!validas.length) return;
+        /* prefiere la arista que da mas recursos */
+        validas.sort((a,b) => valorDelCruce(a[0].split('|')[0].replace(/^a#/,'v#'))
+                            - valorDelCruce(b[0].split('|')[0].replace(/^a#/,'v#')));
+        const [kk, x] = validas[0];
+        await coloca('camino', kk, x.hex);
+      }
+      return;
+    }
+
+    /* --- YA JUGANDO --- */
+    if (!s2.dados){
+      $('bDados').click();                             /* tira */
+      return;
+    }
+    /* intenta construir algo, y si no, pasa */
+    const mis = (s2.recursos && s2.recursos[botId]) || {};
+    const hay = (c, n) => (mis[c]||0) >= n;
+    const mios = (s2.piezas && s2.piezas[botId]) || {};
+    if (hay('flight',1) && hay('ride',1) && hay('board',1) && hay('climb',1)){
+      /* Basecamp: en el mejor cruce libre que pegue a algo suyo */
+      const camps = [];
+      Object.values(s2.piezas||{}).forEach(pp => (pp.base||[]).forEach(x => camps.push(x.k)));
+      const puntos = [...(mios.base||[]).map(b=>b.k), ...(mios.camino||[]).flatMap(r => r.k.split('|').map(e=>e.replace(/^a#/,'v#')))];
+      const vecinos = {};
+      Object.keys(A).forEach(kk => { const p = kk.split('|');
+        const v1=p[0].replace(/^a#/,'v#'), v2=p[1].replace(/^a#/,'v#');
+        (vecinos[v1]=vecinos[v1]||[]).push(v2); (vecinos[v2]=vecinos[v2]||[]).push(v1); });
+      const sitios = Object.keys(V).filter(k => V[k].n>=2 && !camps.includes(k)
+        && !(vecinos[k]||[]).some(v => camps.includes(v))
+        && puntos.includes(k));
+      if (sitios.length){
+        sitios.sort((a,b) => valorDelCruce(b) - valorDelCruce(a));
+        await coloca('base', sitios[0], V[sitios[0]].hex);
+        return;
+      }
+    }
+    if (hay('flight',1) && hay('ride',1)){
+      const puntos = [...(mios.base||[]).map(b=>b.k), ...(mios.camino||[]).flatMap(r => r.k.split('|').map(e=>e.replace(/^a#/,'v#')))];
+      const validas = Object.entries(A).filter(([kk]) => kk.split('|').some(e => puntos.includes(e.replace(/^a#/,'v#'))));
+      if (validas.length){ await coloca('camino', validas[0][0], validas[0][1].hex); return; }
+    }
+    $('bPasar').click();                               /* si no puede, pasa */
+  } finally {
+    yo = yoReal; botOcupado = false;
+  }
 }
 
 $('bCrear').onclick = () => pant('p3');
@@ -723,6 +859,7 @@ function crearTablero(nJug){
 }
 
 function pintaTablero(hexes){
+  HEXES = hexes;      /* el bot los necesita para valorar los sitios */
   const svg = $('tablero');
   if (!svg) return;
   /* la forma del tablero depende de cuantos hexagonos haya: 19 o 30 */
@@ -1497,6 +1634,7 @@ let OUTPOSTS = [];      /* [{ k:'v#x#y', x, y, tipo, r }] */
 /* el panal: cruces (V) y aristas (A). Son globales porque los usan tanto el
    tablero como los outposts. */
 let V = {}, A = {}, V_OUT = false;
+let HEXES = [];      /* los hexagonos de la partida: los usa el bot */
 
 /* reparto los 9 outposts por el borde de la isla, bien separados */
 function ponOutposts(){
