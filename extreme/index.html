@@ -875,6 +875,11 @@ function pintaTablero(hexes){
   /* la forma del tablero depende de cuantos hexagonos haya: 19 o 30 */
   ponTablero(hexes.length > 19 ? 5 : 2);
   ajustaLienzo();
+  /* OJO: pintaTablero COLOCA cada hexagono con posHex(), que lee POS. Si no
+     lo calculo aqui, POS esta vacio y revienta con "Cannot destructure
+     property 'cx' of posHex(...)". Y al reventar se corta el aviso entero:
+     el tablero no se pinta, no sale el turno y los bots no juegan. */
+  calculaPosiciones();
   /* los cruces del panal: hacen falta para colocar los outposts */
   if (!Object.keys(V).length || !V_OUT){
     V = {}; A = {};
