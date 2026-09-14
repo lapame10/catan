@@ -2140,7 +2140,9 @@ function pintaOfertas(s){
   Object.entries(s.jugadores || {}).forEach(([id,j]) => nombres[id] = j.nombre || '?');
   const txt = (o) => Object.entries(o).map(([k,v]) => `<b>${v}</b> ${k.toUpperCase()}`).join(' + ');
   const claves = Object.keys(of);
-  el.innerHTML = claves.length ? claves.map(k => {
+  /* en la lista de abajo, tampoco te enseno las que ya rechazaste */
+  const visibles = claves.filter(k => of[k].de === yo.id || !(of[k].no && of[k].no[yo.id]));
+  el.innerHTML = visibles.length ? visibles.map(k => {
     const o = of[k];
     const mia = (o.de === yo.id);
     const puedo = !mia && Object.entries(o.pido).every(([r,n]) =>
@@ -2166,7 +2168,8 @@ function pintaOfertas(s){
      aviso que TAPA TODO: tienes que aceptar o rechazar antes de seguir. */
   const pv = $('panelOferta');
   if (!pv) return;
-  const otras = claves.filter(k => of[k].de !== yo.id);
+  /* las que YA rechace no me las vuelvas a ensenar */
+  const otras = claves.filter(k => of[k].de !== yo.id && !(of[k].no && of[k].no[yo.id]));
   const mias  = claves.filter(k => of[k].de === yo.id);
   if (otras.length){
     const k = otras[0], o = of[k];
@@ -2222,7 +2225,24 @@ async function responde(oid, acepta){
     aviso('✔ Trato hecho', 'Se ha hecho el cambio');
     return;
   } else {
-    ofertas[oid].rechazo = (ofertas[oid].rechazo || 0) + 1;
+    /* ===== RECHAZAR =====
+       Antes esto solo apuntaba un numero en 'rechazo' y la oferta SEGUIA en la
+       mesa, asi que el aviso volvia a salir y no te dejaba rechazar nunca.
+       Ahora: si tu la rechazas, NO te la vuelvo a enseñar. La oferta sigue
+       viva para los demas (en Catan rechazas por ti, no por los otros), y si
+       la rechazan TODOS menos el que la hizo, se retira sola. */
+    ofertas[oid] = Object.assign({}, ofertas[oid]);
+    ofertas[oid].no = Object.assign({}, ofertas[oid].no || {});
+    ofertas[oid].no[yo.id] = true;
+    const otros = Object.keys(s.jugadores || {}).filter(id => id !== o.de);
+    if (otros.length && otros.every(id => ofertas[oid].no[id])){
+      const limpio = Object.assign({}, ofertas);
+      delete limpio[oid];
+      await update(ref(db,'extreme/salas/'+salaCod), { ofertas: limpio });
+      aviso('🚫 Oferta retirada', 'Nadie la quiso, así que se ha quitado.');
+      return;
+    }
+    aviso('🚫 Rechazada', 'No te la volveremos a ofrecer. Sigue en la mesa para los demás.', 3200);
   }
   await update(ref(db,'extreme/salas/'+salaCod), { ofertas });
 }
