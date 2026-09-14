@@ -533,6 +533,7 @@
     <div class="pcBtns">
       <button class="btn" id="ofSi">ACEPTAR</button>
       <button class="btn alt" id="ofNo">RECHAZAR</button>
+      <button class="btn alt" id="ofOtra">🤝 PROPONER OTRA COSA</button>
     </div>
   </div>
 </div>
@@ -2122,13 +2123,18 @@ function pintaPartida(s){
    ========================================================================== */
 let doy = {}, pido = {};
 
-function abreComercio(){
-  doy = {}; pido = {};
+/* ===== RESPONDER A UNA OFERTA CON OTRA PROPUESTA =====
+   respondoA guarda a QUIEN le estoy respondiendo. Si es null, la oferta va a
+   todos (lo normal). Si tiene un id, va solo para esa persona. */
+let respondoA = null;
+
+function abreComercio(para){
+  doy = {}; pido = {}; respondoA = (typeof para === 'string') ? para : null;
   pintaPanel();
   $('panelComercio').classList.add('on');
 }
-$('pcCerrar').onclick = () => $('panelComercio').classList.remove('on');
-$('bComercio').onclick = abreComercio;
+$('pcCerrar').onclick = () => { $('panelComercio').classList.remove('on'); respondoA = null; };
+$('bComercio').onclick = () => abreComercio(null);
 
 async function pintaPanel(){
   const s = await leerSala(salaCod);
@@ -2172,6 +2178,15 @@ async function pintaPanel(){
   const queDoy = Object.keys(doy);
   const miTasa = (queDoy.length === 1) ? tasaDe(s, queDoy[0]) : 4;
   const mejor = RECURSOS.reduce((m, c) => Math.min(m, tasaDe(s, c.id)), 4);
+  /* ===== SI ESTOY RESPONDIENDO A ALGUIEN =====
+     El banco no pinta nada aqui, y el boton dice a quien le mando la propuesta. */
+  const nombrePara = respondoA ? (((s.jugadores || {})[respondoA] || {}).nombre || '?') : '';
+  const h3p = $('panelComercio').querySelector('h3');
+  if (h3p) h3p.textContent = respondoA ? ('🤝 Proponer a ' + nombrePara) : '🔄 Comerciar';
+  $('pcBanco').style.display = respondoA ? 'none' : '';
+  $('pcOfrecer').textContent = respondoA
+    ? ('🤝 PROPONER A ' + nombrePara.toUpperCase())
+    : 'OFRECER A LOS DEMÁS';
   $('pcBanco').textContent = (nDoy && nPido)
     ? `BANCO · ${nDoy} por ${nPido}`
     : (mejor < 4 ? `AL BANCO (${mejor}:1) 🏕️` : `AL BANCO — elige ${miTasa} del mismo`);
@@ -2213,10 +2228,26 @@ $('pcOfrecer').onclick = async () => {
   }
   const ofertas = Object.assign({}, s.ofertas || {});
   const oid = 'o' + Date.now();
+  const para = respondoA;
   ofertas[oid] = { de: yo.id, doy: Object.assign({}, doy), pido: Object.assign({}, pido), t: Date.now() };
+  if (para){
+    /* ===== CONTRA-OFERTA: va SOLO para el que me la hizo =====
+       Y la suya la doy por rechazada, para no tener dos conversaciones abiertas. */
+    ofertas[oid].para = para;
+    for (const k in ofertas){
+      if (k !== oid && ofertas[k].de === para && !(ofertas[k].no && ofertas[k].no[yo.id])){
+        ofertas[k] = Object.assign({}, ofertas[k]);
+        ofertas[k].no = Object.assign({}, ofertas[k].no || {});
+        ofertas[k].no[yo.id] = true;
+      }
+    }
+  }
   await update(ref(db,'extreme/salas/'+salaCod), { ofertas });
   $('panelComercio').classList.remove('on');
-  aviso('🔄 Oferta enviada', 'Los demás la verán y podrán aceptarla');
+  respondoA = null;
+  aviso(para ? '🤝 Propuesta enviada' : '🔄 Oferta enviada',
+        para ? ('Solo la verá ' + (((s.jugadores || {})[para] || {}).nombre || '?') + '. A ver qué dice.')
+             : 'Los demás la verán, y podrán aceptarla o proponerte otra cosa');
 };
 
 /* pintar las ofertas que hay en la mesa */
@@ -2228,8 +2259,11 @@ function pintaOfertas(s){
   Object.entries(s.jugadores || {}).forEach(([id,j]) => nombres[id] = j.nombre || '?');
   const txt = (o) => Object.entries(o).map(([k,v]) => `<b>${v}</b> ${k.toUpperCase()}`).join(' + ');
   const claves = Object.keys(of);
-  /* en la lista de abajo, tampoco te enseno las que ya rechazaste */
-  const visibles = claves.filter(k => of[k].de === yo.id || !(of[k].no && of[k].no[yo.id]));
+  /* en la lista de abajo, tampoco te enseno las que ya rechazaste, ni las
+     contra-ofertas que van para otro */
+  const visibles = claves.filter(k => (of[k].de === yo.id
+    || (of[k].de !== yo.id && !(of[k].no && of[k].no[yo.id])))
+    && (!of[k].para || of[k].para === yo.id || of[k].de === yo.id));
   el.innerHTML = visibles.length ? visibles.map(k => {
     const o = of[k];
     const mia = (o.de === yo.id);
@@ -2256,8 +2290,11 @@ function pintaOfertas(s){
      aviso que TAPA TODO: tienes que aceptar o rechazar antes de seguir. */
   const pv = $('panelOferta');
   if (!pv) return;
-  /* las que YA rechace no me las vuelvas a ensenar */
-  const otras = claves.filter(k => of[k].de !== yo.id && !(of[k].no && of[k].no[yo.id]));
+  /* las que YA rechace no me las vuelvas a ensenar; y las CONTRA-OFERTAS
+     (las que llevan 'para') solo las ve la persona a la que van */
+  const otras = claves.filter(k => of[k].de !== yo.id
+    && !(of[k].no && of[k].no[yo.id])
+    && (!of[k].para || of[k].para === yo.id));
   const mias  = claves.filter(k => of[k].de === yo.id);
   if (otras.length){
     const k = otras[0], o = of[k];
@@ -2287,6 +2324,24 @@ function pintaOfertas(s){
     $('ofNo').textContent = 'RECHAZAR';
     $('ofSi').onclick = () => responde(k, true);
     $('ofNo').onclick = () => responde(k, false);
+    /* ===== PROPONER OTRA COSA =====
+       Estilo Catan: nadie esta obligado a decir que si a la primera. Le doy
+       por rechazada SU oferta (para no tener dos frentes abiertos) y abro el
+       comercio respondiendole SOLO a esa persona, con otras cantidades. */
+    $('ofOtra').style.display = '';
+    $('ofOtra').onclick = async () => {
+      const quien = o.de;
+      const su = await leerSala(salaCod);
+      const ofs = Object.assign({}, (su || {}).ofertas || {});
+      if (ofs[k]){
+        ofs[k] = Object.assign({}, ofs[k]);
+        ofs[k].no = Object.assign({}, ofs[k].no || {});
+        ofs[k].no[yo.id] = true;
+        await update(ref(db,'extreme/salas/'+salaCod), { ofertas: ofs });
+      }
+      pv.classList.remove('on');
+      abreComercio(quien);
+    };
     pv.classList.add('on');
   } else if (mias.length && !$('panelComercio').classList.contains('on')){
     const o = of[mias[0]];
@@ -2294,6 +2349,7 @@ function pintaOfertas(s){
     $('ofTxt').innerHTML = 'Das <b>' + txt(o.doy) + '</b> y quieres <b>' + txt(o.pido) +
       '</b><br>Esperando a que alguien la acepte…';
     $('ofSi').style.display = 'none';
+    $('ofOtra').style.display = 'none';
     $('ofNo').textContent = 'RETIRAR MI OFERTA';
     $('ofNo').onclick = () => responde(mias[0], null);
     pv.classList.add('on');
