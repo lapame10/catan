@@ -7,24 +7,50 @@ const FB = 'https://plan-gym-8aff7-default-rtdb.firebaseio.com/extreme';
 const out = document.getElementById('out');
 const log = m => { out.innerHTML += '<br>' + m; };
 const espera = ms => new Promise(r => setTimeout(r, ms));
+const pant = d => [...d.querySelectorAll('.pant')].filter(p => p.classList.contains('on')).map(p => p.id).join(',');
+const reporta = o => fetch(FB + '/prueba.json', { method:'PUT', headers:{ 'Content-Type':'application/json' },
+  body: JSON.stringify(o) }).catch(() => {});
+
 (async () => {
+  const datos = { pantallas: [], ok:false };
   try {
     localStorage.setItem('extreme_yo', JSON.stringify({ cod:'CAMP', id:'j1', nombre:'Pam' }));
-    log('sesion puesta (sala CAMP, soy j1)');
     const f = document.getElementById('f');
-    f.src = 'https://lapame10.github.io/catan/extreme/?s=CAMP&n=Pam&c=rojo';
-    await espera(14000);
-    const d = f.contentDocument;
-    const pant = [...d.querySelectorAll('.pant')].filter(p => p.classList.contains('on')).map(p => p.id).join(',');
-    log('pantalla: ' + pant);
-    log('turnoTxt: ' + (d.getElementById('turnoTxt') || {}).textContent.slice(0, 55));
+    f.src = 'https://lapame10.github.io/catan/extreme/?s=CAMP&n=Pam&c=rojo&z=' + Date.now();
+
+    /* espero a que la app entre en la sala (hasta 45 s, mirando cada 3) */
+    let d, p = '';
+    for (let i = 0; i < 15; i++) {
+      await espera(3000);
+      try { d = f.contentDocument; p = pant(d); } catch (e) { p = 'sin acceso'; }
+      datos.pantallas.push(((i + 1) * 3) + 's:' + p);
+      if (p.indexOf('p5') >= 0 || p.indexOf('p4') >= 0) break;
+    }
+    log('pantallas: ' + datos.pantallas.join(' | '));
+    datos.pantalla = p;
+
+    if (p.indexOf('p4') < 0 && p.indexOf('p5') < 0) {
+      datos.error = 'no entro a la sala (se quedo en ' + p + ')';
+      log('✗ no entro a la sala');
+      await reporta(datos);
+      return;
+    }
 
     const antes = (await (await fetch(FB + '/salas/CAMP.json')).json()).piezas.j1.base.length;
+    datos.campsAntes = antes;
     log('camps ANTES: ' + antes);
 
+    /* si la partida ya empezo, salta a la mesa */
+    if (p.indexOf('p4') >= 0) {
+      d.getElementById('bEmpezar').click();
+      await espera(6000);
+    }
+
+    /* pulso BASECAMP y toco el primer punto */
     d.getElementById('bBase').click();
-    await espera(2500);
+    await espera(3000);
     const toques = d.querySelectorAll('.toque');
+    datos.toques = toques.length;
     log('puntos para tocar: ' + toques.length);
 
     if (toques.length) {
@@ -34,24 +60,22 @@ const espera = ms => new Promise(r => setTimeout(r, ms));
       svg.dispatchEvent(new f.contentWindow.MouseEvent('click', { bubbles:true,
         clientX: rect.left + ((+t.getAttribute('cx')) - vb.x) / esc,
         clientY: rect.top + ((+t.getAttribute('cy')) - vb.y) / esc }));
-      await espera(4000);
+      await espera(4500);
     }
 
     const j = await (await fetch(FB + '/salas/CAMP.json')).json();
     const despues = (((j.piezas || {}).j1 || {}).base || []).length;
+    datos.campsDespues = despues;
+    datos.ok = despues > antes;
+    datos.aviso = (d.getElementById('avisoTx') || {}).textContent.slice(0, 90);
+    datos.recursos = j.recursos.j1;
     log('camps DESPUES: ' + despues);
-    log(despues > antes ? '✓✓✓ EL BASECAMP SE PONE' : '✗ SIGUE SIN PONERSE');
-    log('aviso: ' + (d.getElementById('avisoTx') || {}).textContent.slice(0, 60));
-    log('recursos: ' + JSON.stringify(j.recursos.j1));
-
-    await fetch(FB + '/prueba.json', { method:'PUT', headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ campsAntes: antes, campsDespues: despues, ok: despues > antes,
-        toques: toques.length, pantalla: pant, aviso: (d.getElementById('avisoTx') || {}).textContent.slice(0,80),
-        recursos: j.recursos.j1 }) });
+    log(datos.ok ? '✓✓✓ EL BASECAMP SE PONE' : '✗ SIGUE SIN PONERSE');
+    log('aviso: ' + datos.aviso);
   } catch (e) {
+    datos.error = String(e.message);
     log('ERROR: ' + e.message);
-    try { await fetch(FB + '/prueba.json', { method:'PUT', headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ error: String(e.message) }) }); } catch (x) {}
   }
+  await reporta(datos);
 })();
 </script>
