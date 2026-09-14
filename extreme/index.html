@@ -569,6 +569,8 @@ function escuchar(cod){
           set(ref(db,'extreme/salas/'+cod+'/jugadores/'+yo.id), { nombre: yo.nombre, color: yo.color });
           onDisconnect(ref(db,'extreme/salas/'+cod+'/jugadores/'+yo.id)).remove();
         }
+        /* repinto en cuanto mi ficha nueva este guardada (sin recargar) */
+        setTimeout(() => leerSala(cod).then(x => { if (x) pintaPartida(x); }), 800);
         return;
       }
     }
@@ -614,12 +616,17 @@ function escuchar(cod){
           upd.colocPaso = null;
         }
         update(ref(db,'extreme/salas/'+cod), upd);
-        return;
-      }
-      if (!presentes.includes(s.turno)){
+        /* ===== Y SIGO CON LOS DATOS NUEVOS YA =====
+           Antes hacia return sin repintar, asi que la pantalla se quedaba como
+           estaba y parecia que "no te deja jugar" hasta que recargabas. */
+        if (upd.orden) s.orden = upd.orden;
+        if (upd.turno) s.turno = upd.turno;
+        if ('colocPaso' in upd) s.colocPaso = upd.colocPaso;
+      } else if (!presentes.includes(s.turno)){
         /* el orden cuadra, pero el turno es de alguien que ya no esta */
         update(ref(db,'extreme/salas/'+cod), { turno: presentes[0], colocPaso: null });
-        return;
+        s.turno = presentes[0];
+        s.colocPaso = null;
       }
     }
 
@@ -635,14 +642,19 @@ function escuchar(cod){
           const ordenR = [...idsR, ...[...idsR].reverse()];
           const recR = {}, paR = {};
           idsR.forEach(id => { recR[id] = { flight:0, board:0, ride:0, climb:0, jump:0 }; paR[id] = 0; });
+          const hsR = crearTablero(idsR.length);
           update(ref(db,'extreme/salas/'+cod), {
-            fase:'colocando', empezada:Date.now(), hexes: crearTablero(idsR.length),
+            fase:'colocando', empezada:Date.now(), hexes: hsR,
             recursos: recR, pa: paR, piezas:{}, dados:null,
             orden: ordenR, colocadoEn: 0, colocPaso: null, turno: ordenR[0]
           });
+          /* sigo con los datos nuevos, para que se pinte YA (sin recargar) */
+          s.fase = 'colocando'; s.hexes = hsR; s.recursos = recR; s.pa = paR;
+          s.piezas = {}; s.dados = null; s.orden = ordenR;
+          s.colocadoEn = 0; s.colocPaso = null; s.turno = ordenR[0];
         }
       }
-      return;
+      if (!s.hexes || !s.orden || !s.turno) return;   /* si no se pudo, no pinto */
     }
 
     /* si la partida ya empezo, todos a la mesa con el MISMO tablero */
