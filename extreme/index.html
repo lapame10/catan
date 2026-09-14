@@ -339,6 +339,13 @@
   .pcPista{font-size:10.5px;color:#e6d6b4;text-align:center;line-height:1.5;
     margin:-6px 0 12px;min-height:30px}
   .pcPista b{color:#f0d899}
+
+  /* ===== TUS RECURSOS DENTRO DEL POPUP DE OFERTA ===== */
+  .ofRecs{margin:12px 0 4px}
+  .cartaRec.pide img{box-shadow:0 0 0 2.5px #f0d899, 0 2px 6px rgba(0,0,0,.8)}
+  .cartaRec.pide b{background:#f0d899;color:#1a1009;box-shadow:0 0 0 1.5px #fff}
+  .ofQueTengo{font-size:9.5px;color:#c9a558;text-align:center;letter-spacing:.7px;
+    margin-top:5px;text-transform:uppercase;font-weight:700}
   .pcBtns .btn{width:100%}
   .pc .btn{max-width:100%}
 
@@ -2176,9 +2183,23 @@ function pintaOfertas(s){
     const puedo = Object.entries(o.pido).every(([r,n]) =>
       ((s.recursos && s.recursos[yo.id] && s.recursos[yo.id][r]) || 0) >= n);
     $('ofTit').textContent = '🔄 ' + (nombres[o.de] || '?') + ' te ofrece un trato';
+    /* ===== TUS RECURSOS, DENTRO DEL POPUP =====
+       Sin esto te pedia decidir a ciegas: no podias mirar lo que tienes porque
+       el popup tapa la pantalla. Ahora salen aqui, y los que TE PIDEN van
+       marcados con un aro dorado. */
+    const misRec = (s.recursos && s.recursos[yo.id]) || {};
+    const fila = '<div class="recursos ofRecs">' + RECURSOS.map(c => {
+      const n2 = misRec[c.id] || 0;
+      const pide = Object.prototype.hasOwnProperty.call(o.pido, c.id);
+      return `<span class="cartaRec${n2 ? '' : ' vacia'}${pide ? ' pide' : ''}"
+        title="${c.n}${pide ? ' — te lo piden' : ''}">
+        <img src="${c.mini}" alt="${c.n}"><b>${n2}</b></span>`;
+    }).join('') + '</div>';
     $('ofTxt').innerHTML = 'Te da <b>' + txt(o.doy) + '</b><br>y quiere <b>' + txt(o.pido) + '</b>' +
-      (puedo ? '' : '<br><br>⚠️ <b>No te llega lo que pide</b> — tendrás que rechazar') +
-      (otras.length > 1 ? '<br><br>(y ' + (otras.length - 1) + ' oferta más esperando)' : '');
+      fila +
+      '<div class="ofQueTengo">Esto es lo que tienes' +
+      (puedo ? '' : ' — <b style="color:#ffb3a3">no te llega lo que pide</b>') + '</div>' +
+      (otras.length > 1 ? '<div class="ofQueTengo">(y ' + (otras.length - 1) + ' oferta más esperando)</div>' : '');
     $('ofSi').style.display = '';
     $('ofSi').disabled = !puedo;
     $('ofSi').textContent = puedo ? 'ACEPTAR' : 'NO TE LLEGA';
