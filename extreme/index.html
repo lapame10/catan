@@ -1071,10 +1071,34 @@ function pintaPartida(s){
        el reglamento te permite: los caminos que salen de tus Basecamps (o
        siguen tus rutas), y los cruces donde puedes poner un Basecamp. */
     const P = piezasDe(s);
+    /* TODAS las piezas de la mesa (mias y de los demas) */
+    const TODAS = [];
+    Object.values(s.piezas || {}).forEach(pp => {
+      (pp.base  ||[]).forEach(x => TODAS.push({ t:'base',  k:x.k }));
+      (pp.hub   ||[]).forEach(x => TODAS.push({ t:'hub',   k:x.k }));
+      (pp.camino||[]).forEach(x => TODAS.push({ t:'camino', k:x.k }));
+    });
     const misBases  = P.filter(x => x.t === 'base' || x.t === 'hub').map(x => x.k);
     const misRutas  = P.filter(x => x.t === 'camino').map(x => x.k);
     const puntosDeRuta = misRutas.flatMap(rk => rk.split('|'));
-    const libres = k => !P.some(x => (x.t==='base'||x.t==='hub') && x.k === k);
+    /* un cruce vale si NO tiene una pieza y NO toca el camp de nadie:
+       en Catan los campamentos no pueden pegarse unos a otros. */
+    const basesDeTodos = TODAS.filter(x => x.t==='base' || x.t==='hub').map(x => x.k);
+    /* los vecinos de cada cruce: los que une una arista del tablero */
+    const vecinosDe = {};
+    Object.keys(A).forEach(kk => {
+      const partes = kk.split('|');
+      const v1 = partes[0].replace(/^a#/, 'v#'), v2 = partes[1].replace(/^a#/, 'v#');
+      (vecinosDe[v1] = vecinosDe[v1] || []).push(v2);
+      (vecinosDe[v2] = vecinosDe[v2] || []).push(v1);
+    });
+    const libres = k => {
+      if (TODAS.some(x => (x.t==='base'||x.t==='hub') && x.k === k)) return false;
+      /* ningun camp a un cruce de distancia: es la regla de Catan */
+      const vec = vecinosDe[k] || [];
+      if (vec.some(v => basesDeTodos.includes(v))) return false;
+      return true;
+    };
 
     if (modo === 'camino'){
       Object.entries(A).forEach(([kk, x]) => {
@@ -1087,7 +1111,7 @@ function pintaPartida(s){
         if (!vale) return;
         h += `<line class="toque toqCamino" data-t="camino" data-k="${kk}" data-h="${x.hex}"
                x1="${x.a[0]}" y1="${x.a[1]}" x2="${x.b[0]}" y2="${x.b[1]}"
-               stroke="#5df08a" stroke-width="9" stroke-linecap="round"
+               stroke="#5df08a" stroke-width="12" stroke-linecap="round"
                stroke-dasharray="9 6" style="filter:drop-shadow(0 0 7px #2fd45f)"/>`;
       });
     } else {
@@ -1110,10 +1134,28 @@ function pintaPartida(s){
   svg.insertAdjacentHTML('beforeend', h);
   /* UN SOLO manejador para todo el tablero. Asi da igual que sea un circulo o
      una linea, y no importa que el SVG se repinte: siempre funciona. */
+  /* ===== TOCAR FACIL =====
+     Antes habia que acertarle a una linea fina. Ahora el juego coge la arista
+     (o el cruce) MAS CERCANO a donde tocas, como el Catan digital. */
   svg.onclick = (e) => {
-    const el = (e.target && e.target.closest) ? e.target.closest('.toque') : null;
-    if (!el) return;
-    coloca(el.dataset.t, el.dataset.k, +el.dataset.h);
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX; pt.y = e.clientY;
+    const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+    const todos = [...svg.querySelectorAll('.toque')];
+    if (!todos.length) return;
+    let mejor = null, mejorD = Infinity;
+    todos.forEach(el => {
+      let d;
+      if (el.tagName === 'line'){
+        d = distPuntoSegmento(p.x, p.y, +el.getAttribute('x1'), +el.getAttribute('y1'),
+                                            +el.getAttribute('x2'), +el.getAttribute('y2'));
+      } else {
+        d = Math.hypot(p.x - +el.getAttribute('cx'), p.y - +el.getAttribute('cy'));
+      }
+      if (d < mejorD){ mejorD = d; mejor = el; }
+    });
+    /* solo si tocas CERCA (radio generoso: es un dedo, no un raton) */
+    if (mejor && mejorD <= 34) coloca(mejor.dataset.t, mejor.dataset.k, +mejor.dataset.h);
   };
 }
 
@@ -1255,6 +1297,16 @@ async function responde(oid, acepta){
   }
   await update(ref(db,'extreme/salas/'+salaCod), { ofertas });
 }
+/* distancia de un punto a un segmento: sirve para coger la arista mas cercana */
+function distPuntoSegmento(px, py, x1, y1, x2, y2){
+  const dx = x2-x1, dy = y2-y1;
+  const L2 = dx*dx + dy*dy;
+  if (!L2) return Math.hypot(px-x1, py-y1);
+  let t = ((px-x1)*dx + (py-y1)*dy) / L2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (x1+t*dx), py - (y1+t*dy));
+}
+
 /* todas MIS piezas en una lista plana: {t, k, v} */
 function piezasDe(s){
   const p = (s.piezas && s.piezas[yo.id]) || {};
