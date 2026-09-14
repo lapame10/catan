@@ -1521,6 +1521,9 @@ function ponOutposts(){
   return OUTPOSTS;
 }
 function cercaDelCentro(x){ return Math.hypot(x.x-CX, x.y-CY) < Math.min(...COLS)*RY*0.42; }
+
+/* la posicion de cada hexagono en el mapa */
+const POS = [];
 function posHex(c, i){
   return POS[c*10 + i];
 }
