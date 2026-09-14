@@ -905,7 +905,18 @@ async function mueveElBot(s){
       if (cual >= 0){ await juegaCarta(cual); return; }
     }
 
-    /* ===== 3) SI NO HE TIRADO, TIRO ===== */
+    /* ===== 3) SI NO TENGO CARTAS, COMPRO UNA =====
+       Antes esto iba DESPUES de construir, y como siempre encontraba algo que
+       construir, nunca llegaba a comprar: en el playtest se quedo el mazo con
+       las 25 cartas intactas. Ahora compra primero si esta sin cartas. */
+    const misRec = (s2.recursos && s2.recursos[botId]) || {};
+    if (!misCartas.length && (s2.avMazo || []).length &&
+        (misRec.board||0) >= 1 && (misRec.climb||0) >= 1 && (misRec.jump||0) >= 1){
+      await comprarCarta();
+      return;                         /* la jugara en cuanto vuelva a tocarle */
+    }
+
+    /* ===== 4) SI NO HE TIRADO, TIRO ===== */
     if (!s2.dados){
       await tirarDados();                              /* tira (aunque su boton este apagado) */
       return;
@@ -955,12 +966,6 @@ async function mueveElBot(s){
         await pasarTurno();                            /* una accion por turno */
         return;
       }
-    }
-    /* ===== 5) SI NO PUEDE CONSTRUIR, COMPRA UNA CARTA DE AVENTURA ===== */
-    if (hay('board',1) && hay('climb',1) && hay('jump',1) && (s2.avMazo || []).length){
-      await comprarCarta();
-      await pasarTurno();
-      return;
     }
     await pasarTurno();                                /* si no puede, pasa */
   } finally {
