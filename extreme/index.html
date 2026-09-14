@@ -298,6 +298,27 @@
   .oferta .si{background:linear-gradient(180deg,#79b93a,#3d7016);color:#fff}
   .oferta .no{background:linear-gradient(180deg,#8a8178,#4a453e);color:#f0e2c4}
   .oferta .mia{font-size:11px;color:#c9a558;text-align:center}
+  /* ===== TUS CARTAS DE AVENTURA ===== */
+  .misCartas{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin:9px auto 0;max-width:344px}
+  .cartaDev{display:flex;flex-direction:column;align-items:center;gap:3px;width:74px;
+    background:rgba(26,16,9,.85);border-radius:9px;padding:6px 4px;cursor:pointer;
+    box-shadow:0 0 0 1.5px rgba(201,165,88,.5);font-size:9.5px;color:#f0e2c4;text-align:center;line-height:1.25}
+  .cartaDev:hover{box-shadow:0 0 0 2px #f0d899}
+  .cartaDev .ic{font-size:20px}
+  .cartaDev b{color:#f0d899;font-size:10px}
+  .cartaDev.jugando{box-shadow:0 0 0 2px #5df08a;animation:latido 1s infinite}
+  @keyframes latido{50%{box-shadow:0 0 0 4px rgba(93,240,138,.5)}}
+  /* el Mal Tiempo en el tablero */
+  .clima{pointer-events:none}
+  /* la pantalla de ganador */
+  .gana{position:fixed;inset:0;background:rgba(10,6,3,.94);display:none;
+    align-items:center;justify-content:center;z-index:60;text-align:center}
+  .gana.on{display:flex}
+  .gana .cajaG{max-width:380px;padding:26px 20px}
+  .gana h2{font-family:Anton,sans-serif;font-size:30px;color:#f0d899;margin:0 0 8px;
+    text-shadow:0 2px 14px rgba(240,216,153,.5)}
+  .gana p{color:#f0e2c4;font-size:14px;margin:0 0 18px}
+
   /* ===== LA GUIA: que terreno da que recurso (cerrada no ocupa nada) ===== */
   .guia{margin:9px auto 0;max-width:344px;background:rgba(26,16,9,.78);
     border-radius:11px;box-shadow:0 0 0 1.5px rgba(201,165,88,.42);overflow:hidden}
@@ -424,6 +445,8 @@
         <button class="btn chico" id="bBase">BASECAMP</button>
         <button class="btn chico" id="bHub">HUB</button>
       </div>
+      <button class="btn alt" id="bCarta">🃏 COMPRAR CARTA DE AVENTURA</button>
+      <div class="misCartas" id="misCartas"></div>
       <button class="btn alt" id="bComercio">🔄 COMERCIAR</button>
       <button class="btn alt" id="bPasar">PASAR EL TURNO</button>
     </div>
@@ -457,6 +480,13 @@
     <button class="btn alt" id="pcCerrar">Cancelar</button>
   </div>
 </div>
+
+<!-- EL GANADOR -->
+<div class="gana" id="gana"><div class="cajaG">
+  <h2 id="ganaTxt">🏆 ¡PARTIDA GANADA!</h2>
+  <p id="ganaSub"></p>
+  <button class="btn" id="ganaVer">SEGUIR MIRANDO</button>
+</div></div>
 
 <!-- AVISO DE LO QUE PASA (dados, recursos, errores) -->
 <div class="aviso" id="aviso"><div class="caja" id="avisoTx"></div></div>
@@ -846,7 +876,36 @@ async function mueveElBot(s){
       return;
     }
 
-    /* --- YA JUGANDO --- */
+    /* ===== 1) SI TOCA LLEVAR EL MAL TIEMPO, LO LLEVO DONDE MAS DAÑO HAGA ===== */
+    if (s2.mueveElClima === botId){
+      let mejor = null, mejorN = -1;
+      (s2.hexes || []).forEach((h, idx) => {
+        if (idx === s2.clima) return;
+        let n = 0;
+        Object.keys(s2.jugadores || {}).forEach(id => {
+          if (id !== botId) n += tocaHex((s2.piezas || {})[id], idx);
+        });
+        if (n > mejorN){ mejorN = n; mejor = idx; }
+      });
+      if (mejor != null) await mueveClimaA(mejor);
+      else await pasarTurno();
+      return;
+    }
+
+    /* ===== 2) SI TENGO UNA CARTA UTIL, LA JUEGO ===== */
+    const misCartas = (s2.cartas && s2.cartas[botId]) || [];
+    if (misCartas.length){
+      /* primero las que dan algo directo; el heli, el ultimo */
+      let cual = misCartas.findIndex(tp => tp !== 'heli');
+      if (cual < 0){
+        const rivales = Object.keys(s2.jugadores || {}).filter(id => id !== botId &&
+          (((s2.piezas || {})[id] || {}).base || []).length);
+        if (rivales.length) cual = 0;      /* con rivales en la mesa, el heli sirve */
+      }
+      if (cual >= 0){ await juegaCarta(cual); return; }
+    }
+
+    /* ===== 3) SI NO HE TIRADO, TIRO ===== */
     if (!s2.dados){
       await tirarDados();                              /* tira (aunque su boton este apagado) */
       return;
@@ -896,6 +955,12 @@ async function mueveElBot(s){
         await pasarTurno();                            /* una accion por turno */
         return;
       }
+    }
+    /* ===== 5) SI NO PUEDE CONSTRUIR, COMPRA UNA CARTA DE AVENTURA ===== */
+    if (hay('board',1) && hay('climb',1) && hay('jump',1) && (s2.avMazo || []).length){
+      await comprarCarta();
+      await pasarTurno();
+      return;
     }
     await pasarTurno();                                /* si no puede, pasa */
   } finally {
@@ -978,6 +1043,47 @@ const MAZO_56 = [...Array(6).fill('flight'), ...Array(6).fill('board'), ...Array
 const NUMS_56 = [2,3,3,4,4,4,5,5,5,6,6,6,8,8,8,9,9,9,10,10,10,11,11,11,4,5,9,10];
 const NUMS = [2,3,3,4,4,5,5,6,6,8,8,9,9,10,10,11,11,12];
 const PIPS = {2:1,3:2,4:3,5:4,6:5,8:5,9:4,10:3,11:2,12:1};
+
+/* ===== LAS CARTAS DE AVENTURA (25, como las de Catan) ===== */
+const CARTA_AV = {
+  heli:        { n:'Rescate en heli',       ic:'🚁', d:'Mueve el Mal Tiempo y roba una carta' },
+  spot:        { n:'Spot legendario',       ic:'⭐', d:'+1 Punto de Aventura' },
+  rutas:       { n:'Dos rutas gratis',      ic:'🛤️', d:'Pones 2 Rutas sin pagar' },
+  perfectas:   { n:'Condiciones perfectas', ic:'🌤️', d:'+2 cartas de recurso' },
+  convergencia:{ n:'Convergencia',          ic:'🌀', d:'Los demás te dan una carta cada uno' },
+};
+const COSTE_CARTA = { board:1, climb:1, jump:1 };
+function mazoAventura(){
+  return revuelve([ ...Array(14).fill('heli'), ...Array(5).fill('spot'), ...Array(2).fill('rutas'),
+                    ...Array(2).fill('perfectas'), ...Array(2).fill('convergencia') ]);
+}
+/* el Mal Tiempo empieza en un dia sin vuelo */
+function sitioDelClima(hexes){
+  const nofly = (hexes||[]).map((h,i) => h.num ? -1 : i).filter(i => i >= 0);
+  return nofly.length ? nofly[0] : null;
+}
+/* la ruta continua mas larga: para el Greatest Traverse */
+function rutaMasLarga(pz){
+  const vec = {};
+  ((pz && pz.camino) || []).forEach(r => {
+    const p = r.v || r.k.split('|');
+    const a = String(p[0]), b = String(p[1]);
+    (vec[a] = vec[a] || []).push(b);
+    (vec[b] = vec[b] || []).push(a);
+  });
+  const recorre = (n, visto) => {
+    let m = 0;
+    (vec[n] || []).forEach(x => {
+      if (visto.has(x)) return;
+      const v2 = new Set(visto); v2.add(x);
+      m = Math.max(m, 1 + recorre(x, v2));
+    });
+    return m;
+  };
+  let mejor = 0;
+  Object.keys(vec).forEach(n => { mejor = Math.max(mejor, recorre(n, new Set([n]))); });
+  return mejor;
+}
 /* ===== LAS DOS FORMAS DE TABLERO =====
    Base (2-4 jug):  3-4-5-4-3 = 19 hexagonos
    5-6 jug:         3-4-5-6-5-4-3 = 30 hexagonos (la "extension" de Catan) */
@@ -1163,6 +1269,9 @@ function pintaBarra(s){
     $('bDados').disabled = true;
     $('bDados').textContent = '🎲 EMPIEZA DESPUÉS';
     ['bCamino','bBase','bHub','bComercio'].forEach(b => $(b).disabled = true);
+    $('bCarta').disabled = true;
+    $('bCarta').textContent = '🃏 CARTA DE AVENTURA';
+    $('misCartas').innerHTML = '';
     $('bBase').classList.toggle('on',   mio && paso === 'base');
     $('bCamino').classList.toggle('on', mio && paso === 'camino');
     if (mio) $('info').innerHTML = paso === 'base'
@@ -1178,6 +1287,36 @@ function pintaBarra(s){
   $('bDados').disabled = !mio || !!s.dados;
   $('bDados').textContent = !mio ? '🎲 ESPERANDO…' : (s.dados ? '🎲 SACASTE ' + s.dados.total : '🎲 TIRAR LOS DADOS');
   ['bCamino','bBase','bHub','bComercio'].forEach(b => $(b).disabled = !mio);
+
+  /* ===== LA CARTA DE AVENTURA ===== */
+  const mazoN = (s.avMazo || []).length;
+  const mis = (s.recursos && s.recursos[yo.id]) || {};
+  $('bCarta').disabled = !mio || mazoN === 0;
+  $('bCarta').textContent = !mio ? '🃏 CARTA DE AVENTURA'
+    : (mazoN ? '🃏 COMPRAR CARTA (' + textoCoste(COSTE_CARTA) + ') · quedan ' + mazoN
+             : '🃏 SE ACABARON LAS CARTAS');
+
+  /* ===== TUS CARTAS: toca una para jugarla ===== */
+  const mias = (s.cartas || {})[yo.id] || [];
+  const toca = (s.mueveElClima === yo.id);
+  $('misCartas').innerHTML = mias.map((tp, i) => {
+    const c = CARTA_AV[tp] || { n: tp, ic: '🃏', d: '' };
+    return `<div class="cartaDev${toca ? ' jugando' : ''}" data-i="${i}" title="${c.d}">
+      <span class="ic">${c.ic}</span><b>${c.n}</b>
+      <span>${toca ? 'muévelo primero' : 'toca para jugarla'}</span></div>`;
+  }).join('');
+  $('misCartas').querySelectorAll('.cartaDev').forEach(el =>
+    el.onclick = () => juegaCarta(+el.dataset.i));
+
+  /* ===== EL GANADOR ===== */
+  if (s.ganador){
+    const nb = ((s.jugadores || {})[s.ganador] || {}).nombre || '?';
+    $('ganaTxt').textContent = '🏆 ¡GANA ' + nb.toUpperCase() + '!';
+    $('ganaSub').innerHTML = 'Llegó a <b>' + ((s.pa || {})[s.ganador] || 10) +
+      ' Puntos de Aventura</b>.<br>¡Buena partida!';
+    $('gana').classList.add('on');
+  } else $('gana').classList.remove('on');
+
   pintaRecursos(s);
 }
 
@@ -1229,9 +1368,18 @@ async function tirarDados(){
   const total = d1 + d2;
   const rec = Object.assign({}, s.recursos || {});
   const gano = {};
+  /* ===== SI SALE 7: MAL TIEMPO =====
+     Nadie cobra. El que ha tirado tiene que llevar el Mal Tiempo a otro
+     terreno, y roba una carta a quien tenga una pieza alli. */
+  if (total === 7){
+    await update(ref(db,'extreme/salas/'+salaCod), { dados: { d1, d2, total }, mueveElClima: yo.id });
+    aviso('🌩️ 7 — ¡MAL TIEMPO!', 'Nadie cobra. <b>Toca un terreno</b> para llevar allí el Mal Tiempo.', 5200);
+    return;
+  }
   if (s.hexes){
     s.hexes.forEach((h, idx) => {
       if (h.num !== total) return;
+      if (idx === s.clima) return;              /* ahi esta el Mal Tiempo: no produce */
       /* quien tenga un Basecamp (1) o Hub (2) pegado a este hexagono, cobra */
       Object.entries(s.jugadores || {}).forEach(([id]) => {
         const toca = tocaHex(s.piezas && s.piezas[id], idx);
@@ -1257,6 +1405,134 @@ async function tirarDados(){
    los botones se apagan cuando no es tu turno, y el bot juega "de tapadillo". */
 $('bDados').onclick = tirarDados;
 
+/* ===== TUS CARTAS DE AVENTURA ===== */
+async function comprarCarta(){
+  const s = await leerSala(salaCod);
+  if (!s || s.turno !== yo.id) return false;
+  const mis = (s.recursos || {})[yo.id] || {};
+  if (!alcanza(mis, COSTE_CARTA)){
+    aviso('No te llega', 'Una Carta de Aventura cuesta <b>' + textoCoste(COSTE_CARTA) + '</b>'); return false;
+  }
+  const mazo = (s.avMazo || []).slice();
+  if (!mazo.length){ aviso('Se acabaron', 'No quedan Cartas de Aventura en el mazo.'); return false; }
+  const tipo = mazo.shift();
+  const cartas = Object.assign({}, s.cartas || {});
+  cartas[yo.id] = (cartas[yo.id] || []).concat([tipo]);
+  const rec = Object.assign({}, s.recursos || {});
+  rec[yo.id] = cobra(mis, COSTE_CARTA);
+  await update(ref(db,'extreme/salas/'+salaCod), { avMazo: mazo, cartas, recursos: rec });
+  aviso(CARTA_AV[tipo].ic + ' ' + CARTA_AV[tipo].n, 'Te ha tocado: ' + CARTA_AV[tipo].d, 4200);
+  revisaLogros(await leerSala(salaCod));
+  return true;
+}
+$('bCarta').onclick = comprarCarta;
+
+async function juegaCarta(i){
+  const s = await leerSala(salaCod);
+  if (!s || s.turno !== yo.id) return;
+  const mias = ((s.cartas || {})[yo.id] || []).slice();
+  const tipo = mias[i];
+  if (!tipo) return;
+  mias.splice(i, 1);
+  const cartas = Object.assign({}, s.cartas || {});
+  cartas[yo.id] = mias;
+  const rec = JSON.parse(JSON.stringify(s.recursos || {}));
+  rec[yo.id] = rec[yo.id] || {};
+  const upd = { cartas };
+  const pa = Object.assign({}, s.pa || {});
+  const ids = ['flight','board','ride','climb','jump'];
+
+  if (tipo === 'spot'){ pa[yo.id] = (pa[yo.id] || 0) + 1; upd.pa = pa; }
+  if (tipo === 'rutas'){
+    const g = Object.assign({}, s.gratis || {});
+    g[yo.id] = (g[yo.id] || 0) + 2; upd.gratis = g;
+  }
+  if (tipo === 'perfectas'){
+    for (let k = 0; k < 2; k++){
+      const r = ids[Math.floor(Math.random()*ids.length)];
+      rec[yo.id][r] = (rec[yo.id][r] || 0) + 1;
+    }
+    upd.recursos = rec;
+  }
+  if (tipo === 'convergencia'){
+    Object.keys(s.jugadores || {}).forEach(otro => {
+      if (otro === yo.id) return;
+      rec[otro] = Object.assign({}, rec[otro] || {});
+      const tengo = Object.entries(rec[otro]).filter(([k, v]) => v > 0);
+      if (!tengo.length) return;
+      const [rk] = tengo[Math.floor(Math.random()*tengo.length)];
+      rec[otro][rk] -= 1;
+      rec[yo.id][rk] = (rec[yo.id][rk] || 0) + 1;
+    });
+    upd.recursos = rec;
+  }
+  if (tipo === 'heli'){
+    const h = Object.assign({}, s.helis || {});
+    h[yo.id] = (h[yo.id] || 0) + 1; upd.helis = h;
+    upd.mueveElClima = yo.id;
+  }
+  await update(ref(db,'extreme/salas/'+salaCod), upd);
+  aviso(CARTA_AV[tipo].ic + ' ' + CARTA_AV[tipo].n,
+        tipo === 'heli' ? 'Toca un terreno para llevar allí el Mal Tiempo.' : 'Hecho.', 4200);
+  revisaLogros(await leerSala(salaCod));
+}
+
+/* ===== LLEVAR EL MAL TIEMPO A OTRO TERRENO ===== */
+async function mueveClimaA(idx){
+  const s = await leerSala(salaCod);
+  if (!s || s.mueveElClima !== yo.id) return;
+  if (s.clima === idx){ aviso('Ya está ahí', 'Elige otro terreno.'); return; }
+  const rec = JSON.parse(JSON.stringify(s.recursos || {}));
+  rec[yo.id] = rec[yo.id] || {};
+  const robadas = [];
+  Object.keys(s.jugadores || {}).forEach(id => {
+    if (id === yo.id) return;
+    if (!tocaHex((s.piezas || {})[id], idx)) return;
+    rec[id] = Object.assign({}, rec[id] || {});
+    const tengo = Object.entries(rec[id]).filter(([k, v]) => v > 0);
+    if (!tengo.length) return;
+    const [rk] = tengo[Math.floor(Math.random()*tengo.length)];
+    rec[id][rk] -= 1;
+    rec[yo.id][rk] = (rec[yo.id][rk] || 0) + 1;
+    robadas.push(((s.jugadores || {})[id] || {}).nombre + ': 1 ' + rk.toUpperCase());
+  });
+  await update(ref(db,'extreme/salas/'+salaCod), { clima: idx, mueveElClima: null, recursos: rec });
+  aviso('🌩️ Mal Tiempo movido',
+        (s.hexes && s.hexes[idx] ? 'Ahora está en <b>' + (TERR[(s.hexes[idx] || {}).rec] || '') + '</b>.' : '') +
+        (robadas.length ? '<br>Le robaste: ' + robadas.join(' · ') : '<br>No había nadie allí.'), 4600);
+}
+
+/* ===== LOS LOGROS Y EL GANADOR =====
+   Greatest Traverse: la ruta continua mas larga (5+ tramos) = +2 puntos.
+   XC Monster: 3 rescates en heli jugados = +2 puntos.
+   Y a 10 Puntos de Aventura se GANA. */
+async function revisaLogros(s){
+  if (!s) return;
+  const pa = Object.assign({}, s.pa || {});
+  const logros = JSON.parse(JSON.stringify(s.logros || {}));
+  let cambio = false, avisos = [];
+  Object.keys(s.jugadores || {}).forEach(id => {
+    logros[id] = logros[id] || {};
+    const L = logros[id];
+    if (!L.greatest && rutaMasLarga((s.piezas || {})[id]) >= 5){
+      L.greatest = true; pa[id] = (pa[id] || 0) + 2; cambio = true;
+      avisos.push('🏅 ' + ((s.jugadores || {})[id] || {}).nombre + ': <b>Greatest Traverse</b> (+2)');
+    }
+    if (!L.monster && ((s.helis || {})[id] || 0) >= 3){
+      L.monster = true; pa[id] = (pa[id] || 0) + 2; cambio = true;
+      avisos.push('🏅 ' + ((s.jugadores || {})[id] || {}).nombre + ': <b>XC Monster</b> (+2)');
+    }
+  });
+  let gan = s.ganador || null;
+  if (!gan) Object.entries(pa).forEach(([id, v]) => { if (v >= 10 && !gan) gan = id; });
+  if (cambio || (gan && gan !== s.ganador)){
+    await update(ref(db,'extreme/salas/'+salaCod), { pa, logros, ganador: gan || null });
+    if (avisos.length) aviso('🏅 ¡LOGRO!', avisos.join('<br>'), 5200);
+    if (gan) aviso('🏆 ¡' + ((s.jugadores || {})[gan] || {}).nombre + ' GANA!', 'Llegó a 10 Puntos de Aventura', 9000);
+  }
+}
+$('ganaVer').onclick = () => $('gana').classList.remove('on');
+
 /* ===== CONSTRUIR: eliges que, y tocas el tablero ===== */
 let modo = null;   // 'camino' | 'base' | 'hub' | null
 async function ponModo(m){
@@ -1281,6 +1557,9 @@ $('bHub').onclick    = () => ponModo('hub');
 async function coloca(tipo, clave, hexIdx){
   const s = await leerSala(salaCod);
   if (!s || s.turno !== yo.id) return;
+
+  /* si toca llevar el Mal Tiempo, el toque es sobre un TERRENO */
+  if (tipo === 'clima'){ await mueveClimaA(hexIdx); return; }
 
   /* ===== SI ESTAMOS COLOCANDO, LAS PIEZAS SON GRATIS y hay que ir en orden ===== */
   if (s.fase === 'colocando'){
@@ -1385,7 +1664,11 @@ async function coloca(tipo, clave, hexIdx){
 
   /* ===== YA JUGANDO: se paga ===== */
   const mis = (s.recursos && s.recursos[yo.id]) || {};
-  const coste = COSTES[tipo];
+  let coste = COSTES[tipo];
+  /* las 2 Rutas gratis de la carta "Dos rutas gratis" no se pagan */
+  const gratisMio = (s.gratis && s.gratis[yo.id]) || 0;
+  const esGratis = (tipo === 'camino' && gratisMio > 0);
+  if (esGratis) coste = {};
   if (!alcanza(mis, coste)){
     aviso('No te llega', `Necesitas <b>${textoCoste(coste)}</b><br>y tienes: ${
       Object.entries(mis).filter(([,v])=>v>0).map(([k,v])=>v+' '+k.toUpperCase()).join(' + ') || 'nada'}`);
@@ -1431,9 +1714,18 @@ async function coloca(tipo, clave, hexIdx){
   const pa = Object.assign({}, s.pa || {});
   if (tipo === 'base') pa[yo.id] = (pa[yo.id]||0) + 1;
   if (tipo === 'hub')  pa[yo.id] = (pa[yo.id]||0) + 1;
-  await update(ref(db,'extreme/salas/'+salaCod), { piezas, recursos: rec, pa });
+  const upd2 = { piezas, recursos: rec, pa };
+  if (esGratis){
+    const g = Object.assign({}, s.gratis || {});
+    g[yo.id] = Math.max(0, gratisMio - 1);
+    if (!g[yo.id]) delete g[yo.id];
+    upd2.gratis = g;
+  }
+  await update(ref(db,'extreme/salas/'+salaCod), upd2);
   ponModo(null);
-  aviso('✔ ' + NOMBRE[tipo] + ' puesto', 'Gastaste ' + textoCoste(coste));
+  aviso('✔ ' + NOMBRE[tipo] + ' puesto',
+        esGratis ? '¡Gratis! (carta de aventura)' : 'Gastaste ' + textoCoste(coste));
+  revisaLogros(await leerSala(salaCod));
 }
 
 /* ===== VOLVER A PINTAR: recursos, dados y piezas encima del tablero ===== */
@@ -1465,6 +1757,31 @@ function pintaPartida(s){
     });
   });
   h += '</g>';
+  /* ===== EL MAL TIEMPO ENCIMA DEL TABLERO ===== */
+  if (s.clima != null && s.hexes && s.hexes[s.clima]){
+    const hc = s.hexes[s.clima];
+    const pos = posHex(hc.c, hc.i);
+    if (pos) h += `<g class="clima">
+      <circle cx="${pos.cx.toFixed(1)}" cy="${pos.cy.toFixed(1)}" r="${(R*0.52).toFixed(1)}"
+        fill="rgba(16,12,7,.74)" stroke="#8fb6ff" stroke-width="2.6"
+        style="filter:drop-shadow(0 0 10px rgba(143,182,255,.8))"/>
+      <text x="${pos.cx.toFixed(1)}" y="${(pos.cy+10).toFixed(1)}" text-anchor="middle"
+        style="font-size:27px">🌩️</text></g>`;
+  }
+  /* ===== SI TE TOCA LLEVAR EL MAL TIEMPO, TOCA UN TERRENO ===== */
+  if (s.mueveElClima === yo.id){
+    h += '<g class="capaTocar capaClima">';
+    (s.hexes || []).forEach((hh, idx) => {
+      if (idx === s.clima) return;
+      const pos = posHex(hh.c, hh.i);
+      if (!pos) return;
+      h += `<circle class="toque toqClima" data-t="clima" data-k="c${idx}" data-h="${idx}"
+             cx="${pos.cx.toFixed(1)}" cy="${pos.cy.toFixed(1)}" r="${(R*0.72).toFixed(1)}"
+             fill="rgba(150,190,255,.30)" stroke="#bcd8ff" stroke-width="2.5"
+             style="filter:drop-shadow(0 0 9px #6fa8ff)"/>`;
+    });
+    h += '</g>';
+  }
   /* capa de puntos para TOCAR (solo visible cuando estas construyendo) */
   if (modo && s.turno === yo.id){
     h += '<g class="capaTocar">';
@@ -1919,7 +2236,10 @@ $('bEmpezar').onclick = async () => {
   await update(ref(db,'extreme/salas/'+salaCod), {
     fase:'colocando', empezada:Date.now(), hexes, recursos, pa,
     piezas:{}, dados:null,
-    orden, colocadoEn: 0, turno: orden[0]
+    orden, colocadoEn: 0, turno: orden[0],
+    /* el Mal Tiempo, las cartas de aventura y los logros */
+    clima: sitioDelClima(hexes), avMazo: mazoAventura(),
+    cartas:{}, gratis:{}, helis:{}, logros:{}, ganador:null, mueveElClima:null
   });
 };
 $('bLink').onclick = async () => {
