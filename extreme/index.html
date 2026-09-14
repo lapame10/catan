@@ -770,7 +770,9 @@ $('bAbrir').onclick = async () => {
   await set(ref(db,'extreme/salas/'+cod), { fase:'lobby', anfitrion:id, creada:Date.now(),
     jugadores:{ [id]:{ nombre, color } } });
   await onDisconnect(ref(db,'extreme/salas/'+cod+'/jugadores/'+id)).remove();
-  salaCod = cod; esAnfitrion = true; escuchar(cod); pant('p4');
+  salaCod = cod; esAnfitrion = true;
+  guarda({ cod, id: yo.id, nombre: yo.nombre });   /* para que no te eche al recargar */
+  escuchar(cod); pant('p4');
 };
 
 $('bEntrar').onclick = async () => {
@@ -1779,6 +1781,19 @@ else if (qCod.length === 4){
       yo = { id: guardado.id, nombre: guardado.nombre, color: s.jugadores[guardado.id].color };
       esAnfitrion = (s.anfitrion === guardado.id);
       salaCod = qCod; escuchar(qCod);
+    } else if (guardado && guardado.nombre){
+      /* Tu ficha ya no esta en la sala: el onDisconnect te quita cuando cierras
+         la app. Antes te dejaba fuera (portada) y parecia que "no te dejaba
+         entrar". Ahora vuelves a entrar solo, con tu mismo nombre. */
+      entrarDirecto(qCod, guardado.nombre, null).then(ok => {
+        if (ok) return;
+        $('inCod').value = qCod; pant('p2');
+        if (s){
+          const occ = Object.values(s.jugadores||{}).map(j => j.color);
+          const e2 = c => { window._c2 = c; pintaAro('aro2', occ, c, e2); };
+          pintaAro('aro2', occ, null, e2);
+        }
+      });
     } else {
       $('inCod').value = qCod; pant('p2');
       if (s){
@@ -1798,6 +1813,10 @@ else {
         yo = { id: guardado.id, nombre: guardado.nombre, color: s.jugadores[guardado.id].color };
         esAnfitrion = (s.anfitrion === guardado.id);
         salaCod = guardado.cod; escuchar(guardado.cod);
+      } else if (s && guardado.nombre){
+        /* Ya no estas en la sala (el onDisconnect te quito al cerrar la app).
+           Vuelve a entrar solo con tu nombre, en vez de quedarte en la portada. */
+        entrarDirecto(guardado.cod, guardado.nombre, null).catch(() => {});
       }
     });
   }
