@@ -319,6 +319,26 @@
     text-shadow:0 2px 14px rgba(240,216,153,.5)}
   .gana p{color:#f0e2c4;font-size:14px;margin:0 0 18px}
 
+  /* ===== EL PANEL DE COMERCIO, ARREGLADO =====
+     Tenia DOS estilos peleandose (.r viejo y .cartaPC nuevo) y el click buscaba
+     el viejo, asi que NO SE PODIA PICAR ningun recurso. Ademas las cartas
+     empujaban el boton de ofrecer fuera del panel. */
+  .pc{max-width:340px;padding:18px 14px}
+  .pcRecs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+  .cartaPC{width:100%;opacity:.42;cursor:pointer;position:relative;
+    transition:transform .12s,opacity .12s}
+  .cartaPC.on{opacity:1;transform:translateY(-3px)}
+  .cartaPC img{width:100%;display:block;border-radius:5px;object-fit:cover;
+    box-shadow:0 2px 6px rgba(0,0,0,.8), 0 0 0 1.5px rgba(201,165,88,.5)}
+  .cartaPC.on img{box-shadow:0 0 0 2.5px #f0d899, 0 0 13px rgba(240,216,153,.85)}
+  .cartaPC .n{position:absolute;right:-3px;bottom:-4px;background:#1a1009;color:#f0d899;
+    border-radius:50%;min-width:18px;height:18px;display:flex;align-items:center;
+    justify-content:center;font-size:10.5px;font-weight:800;
+    box-shadow:0 0 0 1.5px #c9a558;padding:0 3px}
+  .pcBtns{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+  .pcBtns .btn{width:100%}
+  .pc .btn{max-width:100%}
+
   /* ===== LA GUIA: que terreno da que recurso (cerrada no ocupa nada) ===== */
   .guia{margin:9px auto 0;max-width:344px;background:rgba(26,16,9,.78);
     border-radius:11px;box-shadow:0 0 0 1.5px rgba(201,165,88,.42);overflow:hidden}
@@ -1959,7 +1979,7 @@ async function pintaPanel(){
         title="${c.n}"><img src="${c.carta}" alt="${c.n}">
         <span class="n">${cual==='doy' ? (n?n+'/'+tengo:tengo) : (n||'')}</span></span>`;
     }).join('');
-    $(cont).querySelectorAll('.r').forEach(el => el.onclick = () => {
+    $(cont).querySelectorAll('.cartaPC').forEach(el => el.onclick = () => {
       const c = el.dataset.c;
       if (obj[c]) delete obj[c]; else obj[c] = 1;
       pintaPanel();
