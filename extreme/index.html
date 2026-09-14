@@ -1138,24 +1138,35 @@ function pintaPartida(s){
      Antes habia que acertarle a una linea fina. Ahora el juego coge la arista
      (o el cruce) MAS CERCANO a donde tocas, como el Catan digital. */
   svg.onclick = (e) => {
-    const pt = svg.createSVGPoint();
-    pt.x = e.clientX; pt.y = e.clientY;
-    const p = pt.matrixTransform(svg.getScreenCTM().inverse());
     const todos = [...svg.querySelectorAll('.toque')];
     if (!todos.length) return;
-    let mejor = null, mejorD = Infinity;
-    todos.forEach(el => {
-      let d;
-      if (el.tagName === 'line'){
-        d = distPuntoSegmento(p.x, p.y, +el.getAttribute('x1'), +el.getAttribute('y1'),
-                                            +el.getAttribute('x2'), +el.getAttribute('y2'));
-      } else {
-        d = Math.hypot(p.x - +el.getAttribute('cx'), p.y - +el.getAttribute('cy'));
+
+    /* 1) lo normal: el toque trae coordenadas -> cojo la arista MAS CERCANA
+          (radio generoso, que es un dedo y no un raton) */
+    if (e.clientX || e.clientY){
+      const pt = svg.createSVGPoint();
+      pt.x = e.clientX; pt.y = e.clientY;
+      let p;
+      try { p = pt.matrixTransform(svg.getScreenCTM().inverse()); } catch(err){ p = null; }
+      if (p){
+        let mejor = null, mejorD = Infinity;
+        todos.forEach(el => {
+          let d;
+          if (el.tagName === 'line'){
+            d = distPuntoSegmento(p.x, p.y, +el.getAttribute('x1'), +el.getAttribute('y1'),
+                                                +el.getAttribute('x2'), +el.getAttribute('y2'));
+          } else {
+            d = Math.hypot(p.x - +el.getAttribute('cx'), p.y - +el.getAttribute('cy'));
+          }
+          if (d < mejorD){ mejorD = d; mejor = el; }
+        });
+        if (mejor && mejorD <= 34){ coloca(mejor.dataset.t, mejor.dataset.k, +mejor.dataset.h); return; }
       }
-      if (d < mejorD){ mejorD = d; mejor = el; }
-    });
-    /* solo si tocas CERCA (radio generoso: es un dedo, no un raton) */
-    if (mejor && mejorD <= 34) coloca(mejor.dataset.t, mejor.dataset.k, +mejor.dataset.h);
+    }
+
+    /* 2) respaldo: si el navegador no dio coordenadas, uso lo que se toco */
+    const el = (e.target && e.target.closest) ? e.target.closest('.toque') : null;
+    if (el) coloca(el.dataset.t, el.dataset.k, +el.dataset.h);
   };
 }
 
