@@ -1,0 +1,57 @@
+<!doctype html><meta charset="utf-8"><title>prueba del basecamp</title>
+<body style="font:13px monospace;background:#111;color:#8f8;padding:8px">
+<div id="out">arrancando…</div>
+<iframe id="f" style="width:400px;height:820px;border:1px solid #333"></iframe>
+<script>
+const FB = 'https://plan-gym-8aff7-default-rtdb.firebaseio.com/extreme';
+const out = document.getElementById('out');
+const log = m => { out.innerHTML += '<br>' + m; };
+const espera = ms => new Promise(r => setTimeout(r, ms));
+(async () => {
+  try {
+    localStorage.setItem('extreme_yo', JSON.stringify({ cod:'CAMP', id:'j1', nombre:'Pam' }));
+    log('sesion puesta (sala CAMP, soy j1)');
+    const f = document.getElementById('f');
+    f.src = 'https://lapame10.github.io/catan/extreme/?s=CAMP&p=1';
+    await espera(10000);
+    const d = f.contentDocument;
+    const pant = [...d.querySelectorAll('.pant')].filter(p => p.classList.contains('on')).map(p => p.id).join(',');
+    log('pantalla: ' + pant);
+    log('turnoTxt: ' + (d.getElementById('turnoTxt') || {}).textContent.slice(0, 55));
+
+    const antes = (await (await fetch(FB + '/salas/CAMP.json')).json()).piezas.j1.base.length;
+    log('camps ANTES: ' + antes);
+
+    d.getElementById('bBase').click();
+    await espera(2500);
+    const toques = d.querySelectorAll('.toque');
+    log('puntos para tocar: ' + toques.length);
+
+    if (toques.length) {
+      const t = toques[0];
+      const svg = d.getElementById('tablero');
+      const rect = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal, esc = vb.width / rect.width;
+      svg.dispatchEvent(new f.contentWindow.MouseEvent('click', { bubbles:true,
+        clientX: rect.left + ((+t.getAttribute('cx')) - vb.x) / esc,
+        clientY: rect.top + ((+t.getAttribute('cy')) - vb.y) / esc }));
+      await espera(4000);
+    }
+
+    const j = await (await fetch(FB + '/salas/CAMP.json')).json();
+    const despues = (((j.piezas || {}).j1 || {}).base || []).length;
+    log('camps DESPUES: ' + despues);
+    log(despues > antes ? '✓✓✓ EL BASECAMP SE PONE' : '✗ SIGUE SIN PONERSE');
+    log('aviso: ' + (d.getElementById('avisoTx') || {}).textContent.slice(0, 60));
+    log('recursos: ' + JSON.stringify(j.recursos.j1));
+
+    await fetch(FB + '/prueba.json', { method:'PUT', headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ campsAntes: antes, campsDespues: despues, ok: despues > antes,
+        toques: toques.length, pantalla: pant, aviso: (d.getElementById('avisoTx') || {}).textContent.slice(0,80),
+        recursos: j.recursos.j1 }) });
+  } catch (e) {
+    log('ERROR: ' + e.message);
+    try { await fetch(FB + '/prueba.json', { method:'PUT', headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ error: String(e.message) }) }); } catch (x) {}
+  }
+})();
+</script>
