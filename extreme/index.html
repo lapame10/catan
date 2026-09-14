@@ -1613,6 +1613,23 @@ async function ponModo(m){
      donde SI puedes poner no aparecen hasta el siguiente aviso del servidor. */
   const s = await leerSala(salaCod);
   if (s) pintaPartida(s);
+  /* ===== SI NO SALE NI UN SITIO, LO EXPLICO =====
+     Con una sola Ruta sus dos puntas tocan tu Basecamp, y en Catan no puedes
+     poner un Basecamp pegado a otro: no salia NINGUN punto verde y parecia que
+     el juego estaba roto. Aqui lo digo, para que se sepa que hay que extender
+     una Ruta primero. */
+  if (modo === 'base'){
+    setTimeout(() => {
+      const n = document.querySelectorAll('.toqVert').length;
+      if (n) return;
+      const misRutas = ((s && s.piezas && s.piezas[yo.id] && s.piezas[yo.id].camino) || []).length;
+      aviso('🏕️ Aquí no cabe ningún Basecamp',
+        (misRutas
+          ? 'Tus Rutas llegan a cruces que <b>tocan otro Basecamp</b>, y dos Basecamps no pueden pegarse.<br>'
+          : 'Un Basecamp necesita una <b>Ruta tuya</b> que llegue hasta el cruce.<br>') +
+        '<b>Pulsa RUTA y extiende desde tu Basecamp</b> — en el cruce nuevo sí te dejará.', 7000);
+    }, 400);
+  }
 }
 $('bCamino').onclick = () => ponModo('camino');
 $('bBase').onclick   = () => ponModo('base');
