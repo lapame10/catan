@@ -49,6 +49,18 @@ const reporta = o => fetch(FB + '/prueba.json', { method:'PUT', headers:{ 'Conte
     /* pulso BASECAMP y toco el primer punto */
     d.getElementById('bBase').click();
     await espera(3000);
+    datos.diag = {
+      bBaseOn: d.getElementById('bBase').classList.contains('on'),
+      bBaseDisabled: d.getElementById('bBase').disabled,
+      capaTocar: d.querySelectorAll('.capaTocar').length,
+      capaClima: d.querySelectorAll('.capaClima').length,
+      info: (d.getElementById('info') || {}).textContent.slice(0, 80),
+      turnoTxt: (d.getElementById('turnoTxt') || {}).textContent.slice(0, 40),
+      puedoPasar: !d.getElementById('bPasar').disabled,
+      modoCaminoOn: d.getElementById('bCamino').classList.contains('on'),
+      hexesEnSvg: d.querySelectorAll('.hex').length
+    };
+    log('diag: ' + JSON.stringify(datos.diag));
     const toques = d.querySelectorAll('.toque');
     datos.toques = toques.length;
     log('puntos para tocar: ' + toques.length);
