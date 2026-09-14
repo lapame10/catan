@@ -1613,23 +1613,6 @@ async function ponModo(m){
      donde SI puedes poner no aparecen hasta el siguiente aviso del servidor. */
   const s = await leerSala(salaCod);
   if (s) pintaPartida(s);
-  /* ===== SI NO SALE NI UN SITIO, LO EXPLICO =====
-     Con una sola Ruta sus dos puntas tocan tu Basecamp, y en Catan no puedes
-     poner un Basecamp pegado a otro: no salia NINGUN punto verde y parecia que
-     el juego estaba roto. Aqui lo digo, para que se sepa que hay que extender
-     una Ruta primero. */
-  if (modo === 'base'){
-    setTimeout(() => {
-      const n = document.querySelectorAll('.toqVert').length;
-      if (n) return;
-      const misRutas = ((s && s.piezas && s.piezas[yo.id] && s.piezas[yo.id].camino) || []).length;
-      aviso('🏕️ Aquí no cabe ningún Basecamp',
-        (misRutas
-          ? 'Tus Rutas llegan a cruces que <b>tocan otro Basecamp</b>, y dos Basecamps no pueden pegarse.<br>'
-          : 'Un Basecamp necesita una <b>Ruta tuya</b> que llegue hasta el cruce.<br>') +
-        '<b>Pulsa RUTA y extiende desde tu Basecamp</b> — en el cruce nuevo sí te dejará.', 7000);
-    }, 400);
-  }
 }
 $('bCamino').onclick = () => ponModo('camino');
 $('bBase').onclick   = () => ponModo('base');
@@ -1958,6 +1941,24 @@ function pintaPartida(s){
                fill="rgba(93,240,138,.55)" stroke="#eafff0" stroke-width="2.5"
                style="filter:drop-shadow(0 0 8px #2fd45f)"/>`;
       });
+      /* ===== SI NO HAY NINGUNO A MANO, ENSENO DONDE ESTAN LOS HUECOS =====
+         Con 6 jugadores el tablero va apretado: los cruces libres quedan lejos
+         de tus Rutas. Sin esto solo se ve "no me deja" aunque SI hay sitio.
+         Los pinto en DORADO para que se vea hacia donde hay que alargar. */
+      if (s.fase !== 'colocando' && !h.includes('toqVert')){
+        let huecos = 0;
+        Object.entries(V).forEach(([k, x]) => {
+          if (x.n < 2) return;
+          if (!libres(k)) return;
+          huecos++;
+          h += `<circle class="toqHueco" cx="${x.x}" cy="${x.y}" r="10"
+                 fill="rgba(240,216,153,.28)" stroke="#f0d899" stroke-width="2"
+                 style="filter:drop-shadow(0 0 7px #f0d899)"/>`;
+        });
+        if (huecos) setTimeout(() => aviso('🏕️ Hay ' + huecos + ' cruces libres… pero lejos',
+          'Ninguno toca tus Rutas todavía, y un Basecamp tiene que estar pegado a una Ruta tuya.<br>' +
+          '<b>Pulsa RUTA y alarga una hacia un punto DORADO.</b>', 8000), 450);
+      }
     }
     h += '</g>';
   }
