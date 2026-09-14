@@ -592,6 +592,12 @@ function escuchar(cod){
       return;
     }
 
+    /* ===== LA SALA =====
+       Si la partida aun no ha empezado, la pantalla es LA SALA (p4). Sin esto,
+       al entrar por el link o al recargar te quedabas en la PORTADA: no veias
+       la lista de pilotos ni el boton de anadir bots, y parecia que "no te
+       dejaba" hacer nada. */
+    pant('p4');
     const lista = Object.entries(s.jugadores || {}).map(([id,j]) => ({ id, ...j }));
     $('codGrande').textContent = cod;
     $('cuantos').textContent = lista.length === 1 ? 'esperando pilotos…' : lista.length + ' pilotos';
