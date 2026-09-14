@@ -336,6 +336,9 @@
     justify-content:center;font-size:10.5px;font-weight:800;
     box-shadow:0 0 0 1.5px #c9a558;padding:0 3px}
   .pcBtns{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+  .pcPista{font-size:10.5px;color:#e6d6b4;text-align:center;line-height:1.5;
+    margin:-6px 0 12px;min-height:30px}
+  .pcPista b{color:#f0d899}
   .pcBtns .btn{width:100%}
   .pc .btn{max-width:100%}
 
@@ -480,7 +483,7 @@
 <div class="panel" id="panelComercio">
   <div class="pc">
     <h3>🔄 Comerciar</h3>
-
+    <div class="pcPista" id="pcPista"></div>
     <div class="pcFila">
       <div class="pcLado">
         <div class="pcT">DAS</div>
@@ -1979,9 +1982,15 @@ async function pintaPanel(){
         title="${c.n}"><img src="${c.carta}" alt="${c.n}">
         <span class="n">${cual==='doy' ? (n?n+'/'+tengo:tengo) : (n||'')}</span></span>`;
     }).join('');
+    /* ===== AL TOCAR, SUMA DE UNO EN UNO =====
+       Toca 3 veces la misma carta para dar 3. Al pasar del máximo vuelve a
+       empezar, así se quita. Antes solo dejaba poner 1 y no había forma de
+       elegir cuántos. */
     $(cont).querySelectorAll('.cartaPC').forEach(el => el.onclick = () => {
       const c = el.dataset.c;
-      if (obj[c]) delete obj[c]; else obj[c] = 1;
+      const tope = (cual === 'doy') ? (mis[c] || 0) : 5;
+      const n = (obj[c] || 0) + 1;
+      if (n > tope) delete obj[c]; else obj[c] = n;
       pintaPanel();
     });
   };
@@ -1989,11 +1998,22 @@ async function pintaPanel(){
   pinta('pido', pido, 'pido');
   const nDoy = Object.values(doy).reduce((a,b)=>a+b,0);
   const nPido = Object.values(pido).reduce((a,b)=>a+b,0);
-  /* el boton del banco ensena TU mejor tasa (con outpost baja) */
+  /* ===== EL RESUMEN DEL TRATO (para que veas lo que ofreces) ===== */
+  const txtT = (o) => Object.entries(o).map(([k,v]) => v + ' ' + k.toUpperCase()).join(' + ');
+  const pista = $('pcPista');
+  if (pista){
+    pista.innerHTML = (nDoy || nPido)
+      ? 'Das <b>' + (txtT(doy) || '—') + '</b> &nbsp;·&nbsp; quieres <b>' + (txtT(pido) || '—') + '</b>'
+      : 'Toca una carta para <b>DAR</b> y otra para <b>PEDIR</b>.<br>Toca varias veces la misma para dar más de una.';
+  }
+
+  /* el boton del banco ensena tu mejor tasa (con outpost baja) */
+  const queDoy = Object.keys(doy);
+  const miTasa = (queDoy.length === 1) ? tasaDe(s, queDoy[0]) : 4;
   const mejor = RECURSOS.reduce((m, c) => Math.min(m, tasaDe(s, c.id)), 4);
-  $('pcBanco').textContent = nDoy && nPido
-    ? `BANCO (${nDoy}:${nPido})`
-    : (mejor < 4 ? `AL BANCO (${mejor}:1) 🏕️` : 'AL BANCO (4:1)');
+  $('pcBanco').textContent = (nDoy && nPido)
+    ? `BANCO · ${nDoy} por ${nPido}`
+    : (mejor < 4 ? `AL BANCO (${mejor}:1) 🏕️` : `AL BANCO — elige ${miTasa} del mismo`);
 }
 
 /* al banco: 4 de uno por 1 de otro */
