@@ -1409,7 +1409,16 @@ if (bPruebaEl){
     if (!modoPrueba && yo.real){ yo.id = yo.real; yo.real = null; }
     bPruebaEl.classList.toggle('on', modoPrueba);
     bPruebaEl.textContent = modoPrueba ? '🧪 PROBANDO SOLO — QUITAR' : '🧪 PROBAR SOLO';
-    if (salaCod) leerSala(salaCod).then(x => { if (x) pintaPartida(x); });
+    /* y me pongo YA en el turno que toca, sin esperar al servidor */
+    if (salaCod) leerSala(salaCod).then(x => {
+      if (!x) return;
+      if (modoPrueba && x.turno){
+        if (!yo.real) yo.real = yo.id;
+        yo.id = x.turno;
+      }
+      pintaPartida(x);
+      pintaBarra(x);
+    });
   };
 }
 
