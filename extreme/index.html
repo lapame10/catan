@@ -1180,8 +1180,7 @@ $('bDados').onclick = async () => {
       if (h.num !== total) return;
       /* quien tenga un Basecamp (1) o Hub (2) pegado a este hexagono, cobra */
       Object.entries(s.jugadores || {}).forEach(([id]) => {
-        const toca = (s.piezas && s.piezas[id] && s.piezas[id].base || []).filter(v => v.hex === idx).length +
-                     (s.piezas && s.piezas[id] && s.piezas[id].hub  || []).filter(v => v.hex === idx).length * 2;
+        const toca = tocaHex(s.piezas && s.piezas[id], idx);
         if (toca > 0){
           rec[id] = rec[id] || {};
           rec[id][h.rec] = (rec[id][h.rec] || 0) + toca;
@@ -1290,10 +1289,9 @@ async function coloca(tipo, clave, hexIdx){
       /* el SEGUNDO Basecamp YA COBRA: es la produccion inicial de Catan */
       const rec = Object.assign({}, s.recursos || {});
       rec[yo.id] = Object.assign({}, rec[yo.id] || {});
-      (s.hexes||[]).forEach(h => {
+      (s.hexes||[]).forEach((h, i) => {
         if (!h.num) return;
-        const toca = (piezas[yo.id].base||[]).filter(b => b.hex === s.hexes.indexOf(h)).length +
-                     (piezas[yo.id].hub ||[]).filter(b => b.hex === s.hexes.indexOf(h)).length * 2;
+        const toca = tocaHex(piezas[yo.id], i);
         if (toca > 0) rec[yo.id][h.rec] = (rec[yo.id][h.rec]||0) + toca;
       });
       upd.recursos = rec;
@@ -1799,6 +1797,30 @@ function cercaDelCentro(x){ return Math.hypot(x.x-CX, x.y-CY) < Math.min(...COLS
 const POS = [];
 function posHex(c, i){
   return POS[c*10 + i];
+}
+
+/* ===== QUE HEXAGONOS TOCA UN CRUCE =====
+   Un cruce del panal toca TRES hexagonos (dos, o uno, en el borde de la isla).
+   Antes cada Basecamp guardaba UN SOLO hexagono, asi que solo cobraba de ese:
+   los otros dos se perdian y por eso "no daba las tarjetas correctas". Aqui se
+   calculan de verdad: los hexagonos cuyo centro esta a R del cruce. */
+function hexesDelCruce(k){
+  const p = String(k).replace(/^v#/, '').split('#').map(Number);
+  if (!isFinite(p[0]) || !isFinite(p[1])) return [];
+  const out = [];
+  HEXES.forEach((h, i) => {
+    const pos = posHex(h.c, h.i);
+    if (pos && Math.hypot(pos.cx - p[0], pos.cy - p[1]) < R * 1.08) out.push(i);
+  });
+  return out;
+}
+/* cuanto te da ese hexagono: Basecamp suma 1, Hub suma 2 (y si tienes dos
+   piezas alrededor, suma las dos) */
+function tocaHex(pz, i){
+  let n = 0;
+  ((pz && pz.base) || []).forEach(b => { if (hexesDelCruce(b.k).includes(i)) n += 1; });
+  ((pz && pz.hub)  || []).forEach(b => { if (hexesDelCruce(b.k).includes(i)) n += 2; });
+  return n;
 }
 function calculaPosiciones(){
   COLS.forEach((cuantos,c) => {
