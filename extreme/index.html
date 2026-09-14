@@ -1306,7 +1306,12 @@ async function coloca(tipo, clave, hexIdx){
     /* avanza el orden de colocacion */
     const orden = s.orden || [];
     const n = (s.colocadoEn || 0) + 1;
-    const vuelta = (n >= orden.length);          /* ya pasamos todos una vez */
+    /* ===== EL QUE COBRA ES EL **SEGUNDO** BASECAMP =====
+       Antes esto dependia del contador de piezas: si el orden salia descuadrado,
+       alguien ponia su 2o Basecamp en la ida y NO COBRABA NADA (nos paso en la
+       partida AUSQ: Eri con 2 camps y cero recursos). Ahora se mira lo que el
+       jugador TIENE de verdad: si este es su segundo Basecamp, cobra. */
+    const vuelta = ((piezas[yo.id].base||[]).length === 2) || (n >= orden.length);
     const upd = { piezas };
     if (tipo === 'base' && vuelta){
       /* el SEGUNDO Basecamp YA COBRA: es la produccion inicial de Catan */
