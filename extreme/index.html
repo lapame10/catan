@@ -590,6 +590,39 @@ function escuchar(cod){
     /* y mi mando, siempre al dia (puede haber cambiado) */
     esAnfitrion = (s.anfitrion === yo.id);
 
+    /* ===== EL TURNO TIENE QUE SER DE ALGUIEN QUE ESTA =====
+       Si alguien sale de la sala (o vuelve con otro id), su id se queda dentro
+       del orden y el turno puede caer en un FANTASMA. Entonces la partida se
+       paraba y parecia que "ya no te deja jugar". Aqui el orden se rehace con
+       los que estan de verdad y el turno salta al siguiente vivo. */
+    if (s.jugadores && (s.fase === 'colocando' || s.fase === 'juego')){
+      const presentes = Object.keys(s.jugadores);
+      const ord = s.orden || [];
+      const cuadra = ord.length === presentes.length * 2 && ord.every(id => presentes.includes(id));
+      if (!cuadra && presentes.length >= 2){
+        const nuevoOrden = [...presentes, ...[...presentes].reverse()];
+        const upd = { orden: nuevoOrden };
+        if (!presentes.includes(s.turno)){
+          /* el turno era de un fantasma: se lo paso al siguiente que espera */
+          const i = ord.indexOf(s.turno);
+          let sig = null;
+          for (let k = 1; k <= ord.length && !sig; k++){
+            const cand = ord[(i + k + ord.length) % ord.length];
+            if (presentes.includes(cand)) sig = cand;
+          }
+          upd.turno = sig || nuevoOrden[0];
+          upd.colocPaso = null;
+        }
+        update(ref(db,'extreme/salas/'+cod), upd);
+        return;
+      }
+      if (!presentes.includes(s.turno)){
+        /* el orden cuadra, pero el turno es de alguien que ya no esta */
+        update(ref(db,'extreme/salas/'+cod), { turno: presentes[0], colocPaso: null });
+        return;
+      }
+    }
+
     /* ===== SI LA PARTIDA QUEDO A MEDIAS, SE ARREGLA SOLA =====
        Paso si alguien pulsaba EMPEZAR con el juego a medio cargar (caché vieja):
        la sala quedaba en 'juego' o 'colocando' pero SIN tablero y SIN turno, y
