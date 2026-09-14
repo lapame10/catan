@@ -1764,7 +1764,13 @@ async function coloca(tipo, clave, hexIdx){
     const toca = clave.split('|').some(ar => misPuntos2.includes(ar.replace(/^a#/, 'v#')));
     const hayAlgo = Object.values(piezas).some(p => [...(p.base||[]), ...(p.hub||[])].some(x => x.k === clave));
     if (hayAlgo){ aviso('Ya hay una pieza ahí',''); return; }
-    if (!toca && rutas.length){ aviso('Lejos', 'Un Basecamp tiene que tocar una de tus rutas.'); return; }
+    /* un Basecamp tiene que pegarse a algo tuyo (tus rutas o tus Basecamps).
+       OJO: aqui ponia "rutas.length", una variable que NO EXISTE en ningun
+       sitio: era un ReferenceError y la funcion reventaba, asi que al comprar
+       un Basecamp no se ponia nada. */
+    if (!toca && misPuntos2.length){
+      aviso('Lejos', 'Un Basecamp tiene que tocar una de tus rutas o uno de tus Basecamps.'); return;
+    }
     lista.push({ k: clave, hex: hexIdx });
   } else if (tipo === 'hub'){
     const mio = [...(piezas[yo.id].base||[]), ...(piezas[yo.id].hub||[])].find(x => x.k === clave);
