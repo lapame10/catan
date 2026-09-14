@@ -573,6 +573,28 @@ function escuchar(cod){
       }
     }
 
+    /* ===== SI LA PARTIDA QUEDO A MEDIAS, SE ARREGLA SOLA =====
+       Paso si alguien pulsaba EMPEZAR con el juego a medio cargar (caché vieja):
+       la sala quedaba en 'juego' o 'colocando' pero SIN tablero y SIN turno, y
+       entonces no avanzaba a ningun lado. Si falta el tablero, el anfitrion la
+       reparte de nuevo limpia. */
+    if ((s.fase === 'juego' || s.fase === 'colocando') && (!s.hexes || !s.orden || !s.turno)){
+      if (esAnfitrion){
+        const idsR = Object.keys(s.jugadores || {});
+        if (idsR.length >= 2){
+          const ordenR = [...idsR, ...[...idsR].reverse()];
+          const recR = {}, paR = {};
+          idsR.forEach(id => { recR[id] = { flight:0, board:0, ride:0, climb:0, jump:0 }; paR[id] = 0; });
+          update(ref(db,'extreme/salas/'+cod), {
+            fase:'colocando', empezada:Date.now(), hexes: crearTablero(idsR.length),
+            recursos: recR, pa: paR, piezas:{}, dados:null,
+            orden: ordenR, colocadoEn: 0, colocPaso: null, turno: ordenR[0]
+          });
+        }
+      }
+      return;
+    }
+
     /* si la partida ya empezo, todos a la mesa con el MISMO tablero */
     if (s.fase === 'juego' || s.fase === 'colocando'){
       pant('p5');
