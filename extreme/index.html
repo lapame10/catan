@@ -2073,6 +2073,19 @@ function pintaPartida(s){
                stroke="#5df08a" stroke-width="12" stroke-linecap="round"
                stroke-dasharray="9 6" style="filter:drop-shadow(0 0 7px #2fd45f)"/>`;
       });
+    } else if (modo === 'hub'){
+      /* ===== SUBIR A HUB: se toca UN BASECAMP TUYO =====
+         Antes el modo HUB usaba la capa del BASECAMP, que exige que el cruce
+         este LIBRE. Como tu Basecamp esta justo ahi, no salia NINGUN punto y
+         no te dejaba subirlo. Aqui enseño tus Basecamps en dorado. */
+      ((piezas[yo.id] || {}).base || []).forEach(b => {
+        const x = V[b.k];
+        if (!x) return;
+        h += `<circle class="toque toqVert" data-t="hub" data-k="${b.k}" data-h="${x.hex}"
+               cx="${x.x}" cy="${x.y}" r="15"
+               fill="rgba(240,200,90,.55)" stroke="#ffe9a8" stroke-width="2.5"
+               style="filter:drop-shadow(0 0 9px #f0c85a)"/>`;
+      });
     } else {
       Object.entries(V).forEach(([k, x]) => {
         if (x.n < 2) return;
