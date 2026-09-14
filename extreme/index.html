@@ -940,12 +940,20 @@ async function coloca(tipo, clave, hexIdx){
       piezas[yo.id].base.push({ k: clave, hex: hexIdx });
     } else {
       /* la Ruta tiene que salir de tu Basecamp recien puesto */
-      /* la Ruta tiene que salir de tu Basecamp recien puesto.
-         OJO: la arista es "a#x1#y1|a#x2#y2" y el vertice "v#x#y".
-         Hay que comparar el vertice ENTERO: a#x#y se convierte en v#x#y. */
-      const miBase = piezas[yo.id].base[piezas[yo.id].base.length-1];
-      const toca = miBase && clave.split('|').some(ar => ar.replace(/^a#/, 'v#') === miBase.k);
-      if (!toca){ aviso('Pega la Ruta a tu Basecamp','La Ruta tiene que salir del Basecamp que acabas de poner.'); return; }
+      /* La Ruta puede salir de CUALQUIERA de tus Basecamps, o seguir
+         CUALQUIERA de tus rutas. Antes solo valia el ULTIMO Basecamp que
+         pusiste: en la segunda vuelta, o cuando ya tienes rutas por el
+         tablero, te decia "pega la ruta a tu basecamp" y no te dejaba seguir. */
+      const misPuntos = [
+        ...(piezas[yo.id].base  ||[]).map(b => b.k),
+        ...(piezas[yo.id].hub   ||[]).map(b => b.k),
+        ...(piezas[yo.id].camino||[]).flatMap(r => r.k.split('|').map(e => e.replace(/^a#/, 'v#')))
+      ];
+      const toca = clave.split('|').some(ar => misPuntos.includes(ar.replace(/^a#/, 'v#')));
+      if (!toca){
+        aviso('Pega la Ruta a algo tuyo','La Ruta tiene que salir de un Basecamp tuyo o seguir una ruta tuya.');
+        return;
+      }
       piezas[yo.id].camino.push({ k: clave, hex: hexIdx, v: clave.split('|') });
     }
 
@@ -1015,9 +1023,13 @@ async function coloca(tipo, clave, hexIdx){
       aviso('Sin piezas', 'Ya tienes 5 Basecamps y Hubs (el máximo). Súbelos a Hub.'); return;
     }
     /* tiene que tocar una de tus rutas (o ser el primero) */
-    const rutas = piezas[yo.id].camino.map(p => p.k);
-    /* la arista es "a#x1#y1|a#x2#y2" y el vertice "v#x#y": comparo el vertice entero */
-    const toca = rutas.some(rk => rk.split('|').some(ar => ar.replace(/^a#/, 'v#') === clave));
+    /* vale si la ruta sale de tu Basecamp o sigue otra ruta tuya */
+    const misPuntos2 = [
+      ...(piezas[yo.id].base  ||[]).map(b => b.k),
+      ...(piezas[yo.id].hub   ||[]).map(b => b.k),
+      ...(piezas[yo.id].camino||[]).flatMap(r => r.k.split('|').map(e => e.replace(/^a#/, 'v#')))
+    ];
+    const toca = clave.split('|').some(ar => misPuntos2.includes(ar.replace(/^a#/, 'v#')));
     const hayAlgo = Object.values(piezas).some(p => [...(p.base||[]), ...(p.hub||[])].some(x => x.k === clave));
     if (hayAlgo){ aviso('Ya hay una pieza ahí',''); return; }
     if (!toca && rutas.length){ aviso('Lejos', 'Un Basecamp tiene que tocar una de tus rutas.'); return; }
