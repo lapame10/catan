@@ -908,25 +908,35 @@ async function mueveElBot(s){
         const libres = Object.keys(V).filter(k => V[k].n >= 2
           && !camps.includes(k)
           && !(vecinos[k]||[]).some(v => camps.includes(v)));
-        if (!libres.length) return;
+        if (!libres.length){ await avanzaColocacion(); return; }   /* nunca en bucle */
         libres.sort((a,b) => valorDelCruce(b) - valorDelCruce(a));
-        const elegido = libres[0];
-        await coloca('base', elegido, V[elegido].hex);
+        /* probar VARIOS, no siempre el mismo: si otro se me adelanto, el
+           primero ya no vale, y antes se quedaba dando vueltas */
+        for (const k of libres.slice(0, 8)){
+          if (await coloca('base', k, V[k].hex)) return;
+        }
       } else {
         const mios = (P[botId]||{});
         const puntos = [
           ...(mios.base||[]).map(b=>b.k), ...(mios.hub||[]).map(b=>b.k),
           ...(mios.camino||[]).flatMap(r => r.k.split('|').map(e => e.replace(/^a#/,'v#')))
         ];
+        /* las aristas que ya tienen una Ruta (de quien sea) NO valen: sin este
+           filtro el bot intentaba poner la misma Ruta una y otra vez */
+        const usadas = [];
+        Object.values(P).forEach(pp => (pp.camino||[]).forEach(r => usadas.push(r.k)));
         const validas = Object.entries(A).filter(([kk]) =>
+          !usadas.includes(kk) &&
           kk.split('|').some(e => puntos.includes(e.replace(/^a#/,'v#'))));
-        if (!validas.length) return;
-        /* prefiere la arista que da mas recursos */
+        if (!validas.length){ await avanzaColocacion(); return; }
         validas.sort((a,b) => valorDelCruce(a[0].split('|')[0].replace(/^a#/,'v#'))
                             - valorDelCruce(b[0].split('|')[0].replace(/^a#/,'v#')));
-        const [kk, x] = validas[0];
-        await coloca('camino', kk, x.hex);
+        for (const [kk, x] of validas.slice(0, 8)){
+          if (await coloca('camino', kk, x.hex)) return;
+        }
       }
+      /* si no pudo con ninguno, pasa al siguiente: NUNCA se queda en bucle */
+      await avanzaColocacion();
       return;
     }
 
@@ -1916,6 +1926,26 @@ async function coloca(tipo, clave, hexIdx){
   aviso('✔ ' + NOMBRE[tipo] + ' puesto',
         esGratis ? '¡Gratis! (carta de aventura)' : 'Gastaste ' + textoCoste(coste));
   revisaLogros(await leerSala(salaCod));
+  return true;                       /* el bot necesita saber si funciono */
+}
+
+/* ===== AVANZAR LA COLOCACION SIN COLOCAR NADA =====
+   Si un jugador (o un bot) no puede poner nada, hay que saltarle. Antes el bot
+   se salia sin hacer nada y volvia a intentarlo: bucle infinito, la partida se
+   atoraba al principio. */
+async function avanzaColocacion(){
+  const s = await leerSala(salaCod);
+  if (!s || s.fase !== 'colocando' || s.turno !== yo.id) return;
+  const orden = s.orden || [];
+  const n = (s.colocadoEn || 0) + 1;
+  if (n >= orden.length){
+    await update(ref(db,'extreme/salas/'+salaCod),
+      { fase:'juego', colocadoEn:n, turno: orden[0], dados:null, colocPaso:null });
+    aviso('🚀 ¡Empieza la partida!', 'Ya está todo colocado');
+    return;
+  }
+  await update(ref(db,'extreme/salas/'+salaCod),
+    { colocadoEn:n, turno: orden[Math.floor(n/2) % orden.length], colocPaso:null });
 }
 
 /* ===== VOLVER A PINTAR: recursos, dados y piezas encima del tablero ===== */
