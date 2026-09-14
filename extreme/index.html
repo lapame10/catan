@@ -1138,9 +1138,61 @@ function rutaMasLarga(pz){
   Object.keys(vec).forEach(n => { mejor = Math.max(mejor, recorre(n, new Set([n]))); });
   return mejor;
 }
+/* ===== LOS NUMEROS VAN EN ESPIRAL, COMO EN EL CATAN DE VERDAD =====
+   No son al azar: los discos se colocan en ESPIRAL desde la esquina de arriba
+   a la izquierda, en el sentido de las agujas del reloj, saltando el desierto.
+   La secuencia de los 18 discos es SIEMPRE esta (en el Catan original). */
+const SECUENCIA_CATAN = [5,2,6,3,8,10,9,12,11,4,8,10,9,4,5,6,3,11];
+/* para el tablero de 30 (5-6 jugadores) hacen falta 28 discos: la misma
+   secuencia y luego los que sobran, sin repetir numero al lado del mismo */
+const SECUENCIA_56 = SECUENCIA_CATAN.concat([2,6,11,3,8,9,10,4,5,12]);
+
+/* recorre los hexagonos como en el Catan de verdad: primero el CONTORNO de
+   fuera (empezando por el de arriba y en sentido horario) y luego hacia dentro,
+   anillo a anillo. Cada hexagono del borde tiene 2 vecinos del borde, asi que
+   el recorrido es unico: no hay que adivinar angulos. */
+function ordenEnEspiral(hexes){
+  const pos = hexes.map(h => posHex(h.c, h.i));
+  const cx0 = (Math.min.apply(null, pos.map(p => p.cx)) + Math.max.apply(null, pos.map(p => p.cx))) / 2;
+  const cy0 = (Math.min.apply(null, pos.map(p => p.cy)) + Math.max.apply(null, pos.map(p => p.cy))) / 2;
+  /* vecinos: los que estan a un lado de hexagono (distancia RY) */
+  const vec = pos.map((p, a) => pos.map((q, b) => b)
+    .filter(b => b !== a && Math.abs(Math.hypot(q.cx - p.cx, q.cy - p.cy) - RY) < RY * 0.15));
+  const dCentro = pos.map(p => Math.hypot(p.cx - cx0, p.cy - cy0));
+  const anillo = dCentro.map(d => Math.round(d / RY));
+  const anillos = [...new Set(anillo)].sort((a, b) => b - a);   /* el borde primero */
+
+  const recorre = (grupo) => {
+    const g = new Set(grupo);
+    if (g.size <= 1) return [...g];
+    let inicio = grupo[0];
+    grupo.forEach(i => {
+      const yi = Math.round(pos[i].cy * 10), y0 = Math.round(pos[inicio].cy * 10);
+      if (yi < y0 || (yi === y0 && pos[i].cx < pos[inicio].cx)) inicio = i;
+    });
+    const out = [inicio], visto = new Set([inicio]);
+    const primeros = vec[inicio].filter(v => g.has(v));
+    if (!primeros.length) return out;
+    let sig = primeros[0];
+    primeros.forEach(v => { if (pos[v].cx > pos[sig].cx) sig = v; });   /* horario */
+    out.push(sig); visto.add(sig);
+    while (true){
+      const act = out[out.length - 1];
+      const cands = vec[act].filter(v => g.has(v) && !visto.has(v));
+      if (!cands.length) break;
+      out.push(cands[0]); visto.add(cands[0]);
+    }
+    grupo.forEach(i => { if (!visto.has(i)) out.push(i); });
+    return out;
+  };
+
+  const orden = [];
+  anillos.forEach(a => orden.push(...recorre(hexes.map((_, i) => i).filter(i => anillo[i] === a))));
+  return orden;
+}
 /* ===== LAS DOS FORMAS DE TABLERO =====
-   Base (2-4 jug):  3-4-5-4-3 = 19 hexagonos
-   5-6 jug:         3-4-5-6-5-4-3 = 30 hexagonos (la "extension" de Catan) */
+    Base (2-4 jug):  3-4-5-4-3 = 19 hexagonos
+    5-6 jug:         3-4-5-6-5-4-3 = 30 hexagonos (la "extension" de Catan) */
 let COLS = [3,4,5,4,3];
 const COLS_56 = [3,4,5,6,5,4,3];   /* 4 lados de 4 + 2 de 3 */
 function ponTablero(nJug){ COLS = (nJug >= 5) ? COLS_56.slice() : [3,4,5,4,3]; return COLS; }
@@ -1178,13 +1230,38 @@ function crearTablero(nJug){
   ponTablero(nJug || 2);
   const grande = (nJug >= 5);
   const mazo = revuelve(grande ? MAZO_56 : MAZO);
-  const nums = revuelve(grande ? NUMS_56 : NUMS);
-  const hs = []; let k=0, ni=0;
-  COLS.forEach((cuantos,c) => {
-    for (let i=0;i<cuantos;i++){
-      const rec = mazo[k++];
-      hs.push({ c, i, rec, num: rec==='nofly'?null:nums[ni++] });
+  const hs = []; let k = 0;
+  COLS.forEach((cuantos, c) => {
+    for (let i = 0; i < cuantos; i++){
+      hs.push({ c, i, rec: mazo[k++], num: null });
     }
+  });
+  /* ===== LOS NUMEROS, EN ESPIRAL (como el Catan de verdad) =====
+     Los TERRENOS si se barajan, pero los NUMEROS no: van en el orden de
+     siempre, en espiral desde arriba y en sentido horario, saltando el dia
+     sin vuelo. Y el dia sin vuelo va al CENTRO, como en el manual. */
+  calculaPosiciones();
+  const posH = hs.map(h => posHex(h.c, h.i));
+  const cxa = (Math.min.apply(null, posH.map(p => p.cx)) + Math.max.apply(null, posH.map(p => p.cx))) / 2;
+  const cya = (Math.min.apply(null, posH.map(p => p.cy)) + Math.max.apply(null, posH.map(p => p.cy))) / 2;
+  const centro = hs.map((_, i) => i).reduce((a, b) =>
+    Math.hypot(posH[a].cx - cxa, posH[a].cy - cya) < Math.hypot(posH[b].cx - cxa, posH[b].cy - cya) ? a : b);
+  const jnofly = hs.findIndex(h => h.rec === 'nofly');
+  if (jnofly >= 0 && jnofly !== centro){
+    const tmp = hs[centro].rec;
+    hs[centro].rec = 'nofly';
+    hs[jnofly].rec = tmp;
+  }
+  const orden = ordenEnEspiral(hs);
+  const secuencia = (grande ? SECUENCIA_56 : SECUENCIA_CATAN).slice();
+  let ni = 0;
+  orden.forEach(i => {
+    if (hs[i].rec === 'nofly') return;              /* el desierto no lleva numero */
+    if (ni < secuencia.length) hs[i].num = secuencia[ni++];
+  });
+  /* por si quedara alguno sin numero (tableros raros), le pongo lo que sobre */
+  hs.forEach(h => {
+    if (!h.num && h.rec !== 'nofly' && ni < secuencia.length) h.num = secuencia[ni++];
   });
   return hs;
 }
