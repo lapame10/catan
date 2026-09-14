@@ -1177,8 +1177,11 @@ function pintaPartida(s){
       Object.entries(V).forEach(([k, x]) => {
         if (x.n < 2) return;
         if (!libres(k)) return;                    /* ya hay una pieza ahi */
-        /* si ya tienes rutas, el Basecamp tiene que pegarse a una tuya */
-        if (misRutas.length){
+        /* Al CONSTRUIR (ya jugando) el Basecamp tiene que pegarse a algo tuyo.
+           Pero en la COLOCACION INICIAL va donde quieras (mientras no toque
+           otro camp): si no, en la segunda vuelta te escondia TODOS los cruces
+           y parecia que el juego no te dejaba poner nada. */
+        if (misRutas.length && s.fase !== 'colocando'){
           const pega = misRutas.some(rk => rk.split('|').some(e => e.replace(/^a#/,'v#') === k));
           if (!pega) return;
         }
