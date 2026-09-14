@@ -623,6 +623,15 @@ function escuchar(cod){
       if (s.fase === 'colocando' && s.turno === yo.id){
         const quiero = s.colocPaso || 'base';
         if (modo !== quiero){ modo = quiero; }
+      } else if (s.fase === 'juego' && modo){
+        /* ===== SOLTAR EL MODO DE LA COLOCACION =====
+           Al empezar la partida el modo se quedaba encendido por dentro, pero
+           el boton se veia APAGADO. Entonces tu primer toque en RUTA o
+           BASECAMP lo APAGABA en vez de encenderlo, y no salia ningun punto:
+           "me dice que voy y no me deja". */
+        modo = null;
+        ['bCamino','bBase','bHub'].forEach(b => $(b).classList.remove('on'));
+        $('info').innerHTML = '';
       }
       /* PRIMERO las posiciones y DESPUES pintar: los puntos para tocar salen
          de POS, asi que si pinto antes de calcularlas no hay ningun punto. */
