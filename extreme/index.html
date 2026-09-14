@@ -567,12 +567,23 @@ function escuchar(cod){
         if (libres.length){
           yo.color = libres[0];
           set(ref(db,'extreme/salas/'+cod+'/jugadores/'+yo.id), { nombre: yo.nombre, color: yo.color });
-          onDisconnect(ref(db,'extreme/salas/'+cod+'/jugadores/'+yo.id)).remove();
+          registraDesconexion(cod, yo.id);
         }
         /* repinto en cuanto mi ficha nueva este guardada (sin recargar) */
         setTimeout(() => leerSala(cod).then(x => { if (x) pintaPartida(x); }), 800);
         return;
       }
+    }
+
+    /* ===== SESION PERSISTENTE =====
+       Si la partida YA EMPEZO, nadie se va de la mesa por salir de la pagina
+       (basta con ir a contestar un mensaje). Aqui cancelo mi aviso de
+       desconexion: me quedo sentado y al volver estoy justo donde estaba.
+       En el vestibulo SI se limpia, para que no se llene de gente que nunca
+       llego a jugar. */
+    if (miDesconexion && s.fase && s.fase !== 'lobby'){
+      try { miDesconexion.cancel(); } catch(e){}
+      miDesconexion = null;
     }
 
     /* ===== SI EL ANFITRION SE FUE, OTRO TOMA EL MANDO =====
@@ -747,6 +758,18 @@ $('bBot').onclick = async () => {
    Cuando le toca a un bot, lo mueve cualquiera que tenga la app abierta (no
    hace falta servidor). El bot usa las MISMAS funciones que tu, asi que no
    puede hacer trampas: juega con las reglas de todos. */
+/* ===== MI AVISO DE DESCONEXION =====
+   Firebase puede borrarte de la sala cuando sales de la pagina. Lo guardo en
+   esta variable para poder CANCELARLO en cuanto la partida empieza: asi puedes
+   salir a contestar un mensaje sin que te boten de la mesa. */
+let miDesconexion = null;
+function registraDesconexion(cod, id){
+  try {
+    miDesconexion = onDisconnect(ref(db,'extreme/salas/'+cod+'/jugadores/'+id));
+    miDesconexion.remove();
+  } catch(e){}
+}
+
 let botOcupado = false;
 function esElBot(s){ return !!(s && s.jugadores && (s.jugadores[s.turno] || {}).esBot); }
 
@@ -874,7 +897,7 @@ $('bAbrir').onclick = async () => {
   yo = { id, nombre, color };
   await set(ref(db,'extreme/salas/'+cod), { fase:'lobby', anfitrion:id, creada:Date.now(),
     jugadores:{ [id]:{ nombre, color } } });
-  await onDisconnect(ref(db,'extreme/salas/'+cod+'/jugadores/'+id)).remove();
+  registraDesconexion(cod, id);
   salaCod = cod; esAnfitrion = true;
   guarda({ cod, id: yo.id, nombre: yo.nombre });   /* para que no te eche al recargar */
   escuchar(cod); pant('p4');
@@ -894,7 +917,7 @@ $('bEntrar').onclick = async () => {
   const id = 'j' + Date.now() + Math.floor(Math.random()*99);
   yo = { id, nombre, color };
   await set(ref(db,'extreme/salas/'+cod+'/jugadores/'+id), { nombre, color });
-  await onDisconnect(ref(db,'extreme/salas/'+cod+'/jugadores/'+id)).remove();
+  registraDesconexion(cod, id);
   salaCod = cod; esAnfitrion = (s.anfitrion === id); escuchar(cod); pant('p4');
 };
 
@@ -1893,7 +1916,7 @@ async function entrarDirecto(cod, nombre, color){
   if (mio){
     yo = { id: mio[0], nombre, color: mio[1].color };
     esAnfitrion = (s.anfitrion === mio[0]);
-    onDisconnect(ref(db,'extreme/salas/'+cod+'/jugadores/'+mio[0])).remove();
+    registraDesconexion(cod, mio[0]);
   } else {
     const libres = COLORES.map(c=>c.id).filter(c => !Object.values(js).some(j=>j.color===c));
     const col = (color && libres.includes(color)) ? color : libres[0];
@@ -1901,7 +1924,7 @@ async function entrarDirecto(cod, nombre, color){
     const id = 'j' + Date.now() + Math.floor(Math.random()*99);
     yo = { id, nombre, color: col };
     await set(ref(db,'extreme/salas/'+cod+'/jugadores/'+id), { nombre, color: col });
-    await onDisconnect(ref(db,'extreme/salas/'+cod+'/jugadores/'+id)).remove();
+    registraDesconexion(cod, id);
     esAnfitrion = (s.anfitrion === id);
   }
   guarda({ cod, id: yo.id, nombre: yo.nombre });
