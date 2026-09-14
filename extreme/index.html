@@ -958,7 +958,10 @@ async function coloca(tipo, clave, hexIdx){
       /* todos han puesto sus dos piezas: EMPIEZA LA PARTIDA */
       upd.fase = 'juego'; upd.turno = (s.anfitrion || orden[0]); upd.colocPaso = null;
     } else {
-      if (!upd.colocPaso) upd.turno = orden[n % orden.length];
+      /* OJO: cada jugador pone DOS piezas (camp y ruta), y "n" cuenta PIEZAS.
+         Por eso hay que dividir entre 2 para saber a quien le toca. Si no, se
+         saltaba jugadores: iba J1, J3, J5, J6, J4, J2… */
+      if (!upd.colocPaso) upd.turno = orden[Math.floor(n/2) % orden.length];
     }
     await update(ref(db,'extreme/salas/'+salaCod), upd);
     if (tipo === 'base') aviso('✔ Basecamp puesto', 'Ahora toca una <b>RUTA</b> que salga de ahí', 1600);
