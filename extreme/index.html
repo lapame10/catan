@@ -1937,8 +1937,13 @@ async function avanzaColocacion(){
   const s = await leerSala(salaCod);
   if (!s || s.fase !== 'colocando' || s.turno !== yo.id) return;
   const orden = s.orden || [];
+  if (!orden.length) return;
   const n = (s.colocadoEn || 0) + 1;
-  if (n >= orden.length){
+  /* OJO: colocadoEn cuenta PIEZAS (2 por jugador), no posiciones del orden.
+     El total es orden.length * 2 (como en el codigo original de la
+     colocacion). Si se compara sin el *2, la partida no arranca nunca. */
+  const total = orden.length * 2;
+  if (n >= total){
     await update(ref(db,'extreme/salas/'+salaCod),
       { fase:'juego', colocadoEn:n, turno: orden[0], dados:null, colocPaso:null });
     aviso('🚀 ¡Empieza la partida!', 'Ya está todo colocado');
