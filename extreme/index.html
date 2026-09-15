@@ -1487,7 +1487,7 @@ function pintaBarra(s){
     $('bDados').textContent = '🎲 EMPIEZA DESPUÉS';
     ['bCamino','bBase','bHub','bComercio'].forEach(b => $(b).disabled = true);
     $('bCarta').disabled = true;
-    $('bCarta').textContent = '🃏 CARTA DE AVENTURA';
+    ponTextoBtn('bCarta', '🃏 CARTA DE AVENTURA');
     $('misCartas').innerHTML = '';
     $('bBase').classList.toggle('on',   mio && paso === 'base');
     $('bCamino').classList.toggle('on', mio && paso === 'camino');
@@ -1509,9 +1509,9 @@ function pintaBarra(s){
   const mazoN = (s.avMazo || []).length;
   const mis = (s.recursos && s.recursos[yo.id]) || {};
   $('bCarta').disabled = !mio || mazoN === 0;
-  $('bCarta').textContent = !mio ? '🃏 CARTA DE AVENTURA'
+  ponTextoBtn('bCarta', !mio ? '🃏 CARTA DE AVENTURA'
     : (mazoN ? '🃏 COMPRAR CARTA (' + textoCoste(COSTE_CARTA) + ') · quedan ' + mazoN
-             : '🃏 SE ACABARON LAS CARTAS');
+             : '🃏 SE ACABARON LAS CARTAS'));
 
   /* ===== TUS CARTAS: toca una para jugarla ===== */
   const mias = (s.cartas || {})[yo.id] || [];
@@ -2708,6 +2708,19 @@ function ponOutposts(){
   return OUTPOSTS;
 }
 function cercaDelCentro(x){ return Math.hypot(x.x-CX, x.y-CY) < Math.min(...COLS)*RY*0.42; }
+
+/* ===== ESCRIBIR EN UN BOTON SIN CARGARSE EL COSTE =====
+   Los botones llevan dentro un <span class="costeMini"> con tus cartas.
+   textContent BORRA todo el contenido, asi que al repintar el boton se perdia
+   el coste y parecia que no te decia nada. Aqui guardo el span, escribo el
+   texto y lo vuelvo a meter. */
+function ponTextoBtn(id, txt){
+  const b = $(id);
+  if (!b) return;
+  const sp = b.querySelector('.costeMini');
+  b.textContent = txt;
+  if (sp) b.appendChild(sp);
+}
 
 /* la posicion de cada hexagono en el mapa */
 const POS = [];
