@@ -96,7 +96,7 @@
   .med.p5{left:12%;top:29%}
 
   /* ===== EL CINTURON CLARO con cosido y hebilla ===== */
-  .btn{width:100%;border:none;border-radius:8px;padding:17px 66px 17px 20px;cursor:pointer;
+  .btn{width:100%;border:none;border-radius:8px;padding:17px 20px;cursor:pointer;
     font-family:'Anton',sans-serif;font-size:16px;letter-spacing:1.6px;color:#2a1d06;
     margin-top:13px;position:relative;text-align:center;
     background-image:url('laton.jpg');background-size:180px auto;background-position:center;
@@ -107,13 +107,9 @@
   /* el cosido de los bordes */
   .btn::before{content:'';position:absolute;inset:4px;border-radius:5px;pointer-events:none;
     border:1.5px dashed rgba(90,66,20,.55)}
-  /* la hebilla */
-  .btn::after{content:'';position:absolute;right:16px;top:50%;transform:translateY(-50%);
-    width:31px;height:31px;border-radius:7px;
-    background-image:url('laton.jpg');background-size:cover;
-    border:2px solid #c9a558;
-    box-shadow:0 1px 0 rgba(255,250,225,.8) inset, 0 -3px 6px rgba(60,38,5,.6) inset,
-      0 3px 6px rgba(0,0,0,.7)}
+  /* (aqui estaba "la hebilla": un cuadrado de laton a la derecha de TODOS los
+     botones. Pam lo señalo: le estorba y en los botones estrechos caia encima
+     del texto. Quitado.) */
   .btn:active{transform:translateY(3px);
     box-shadow:0 2px 0 rgba(255,250,225,.6) inset, 0 -4px 10px rgba(70,48,10,.55) inset,
       0 2px 0 #5a4212, 0 4px 9px rgba(0,0,0,.6)}
