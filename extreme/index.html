@@ -201,6 +201,22 @@
   .acciones{margin-top:13px}
   .filaBotones{display:flex;gap:8px;margin-top:11px}
   .btn.chico{flex:1;font-size:12px;padding:14px 6px;margin-top:0;letter-spacing:.8px}
+
+  /* ===== QUE TE DIGA QUE TIENES Y QUE TE FALTA =====
+     Debajo de cada boton de construir, tus cartas en tienes/necesitas. Las que
+     te faltan salen en rojo y sin color. */
+  .costeBtn{display:flex;gap:5px;justify-content:center;align-items:center;
+    flex-wrap:wrap;margin:5px 0 9px}
+  .costeBtn:empty{display:none}
+  .cB{display:inline-flex;align-items:center;gap:4px;padding:2px 7px 2px 2px;
+    border-radius:14px;background:rgba(26,16,9,.75);
+    box-shadow:0 0 0 1px rgba(201,165,88,.45)}
+  .cB img{width:22px;height:22px;border-radius:50%;display:block}
+  .cB b{font-size:11px;font-weight:800;color:#9fe0a0}
+  .cB.falta{box-shadow:0 0 0 1.5px rgba(255,125,105,.8)}
+  .cB.falta b{color:#ff9a86}
+  .cB.falta img{filter:grayscale(.9) brightness(.55)}
+  .btn.sinCartas{opacity:.45}
   .btn.chico .ct{display:block;font-size:9px;letter-spacing:0;opacity:.75;margin-top:2px}
   .btn.chico.on{box-shadow:0 0 0 3px #f0d899, 0 3px 0 #5a4212, 0 0 20px rgba(240,216,153,.8);
     transform:translateY(-1px)}
@@ -493,7 +509,11 @@
         <button class="btn chico" id="bBase">BASECAMP</button>
         <button class="btn chico" id="bHub">HUB</button>
       </div>
+      <div class="costeBtn" id="costeCamino"></div>
+      <div class="costeBtn" id="costeBase"></div>
+      <div class="costeBtn" id="costeHub"></div>
       <button class="btn alt" id="bCarta">🃏 COMPRAR CARTA DE AVENTURA</button>
+      <div class="costeBtn" id="costeCarta"></div>
       <div class="misCartas" id="misCartas"></div>
       <button class="btn alt" id="bComercio">🔄 COMERCIAR</button>
       <button class="btn alt" id="bPasar">PASAR EL TURNO</button>
@@ -1528,6 +1548,48 @@ function pintaBarra(s){
 }
 
 /* ===== TUS RECURSOS ===== */
+/* ===== QUE TE DIGA QUE TIENES Y QUE TE FALTA =====
+   Pam: "que la ruta no te deje picarla a menos que tengas las cartas
+   correctas, ni el basecamp ni el hub ni las cartas; y que incluso debajo del
+   boton te diga que tienes y que te falta".
+   Si no te llegan las exactas pero puedes CANJEAR con las que te sobran,
+   el boton sigue vivo (en Catan se puede cambiar 4:1, o mejor con Outpost). */
+function pintaCoste(idDiv, idBtn, coste, s, mis){
+  const el = $(idDiv);
+  if (!el || !coste) return;
+  const falta = Object.entries(coste).filter(([k, v]) => (mis[k] || 0) < v);
+  const listo = falta.length === 0;
+  let canjea = false;
+  if (!listo){
+    const sobran = [];
+    Object.entries(mis).forEach(([r, n]) => {
+      for (let i = 0; i < n - (coste[r] || 0); i++) sobran.push(r);
+    });
+    let nec = 0;
+    falta.forEach(([k, v]) => {
+      const tasa = (typeof tasaDe === 'function') ? (tasaDe(s, k) || 4) : 4;
+      nec += (v - (mis[k] || 0)) * tasa;
+    });
+    canjea = sobran.length >= nec;
+  }
+  const cartas = Object.entries(coste).map(([k, v]) => {
+    const n = mis[k] || 0;
+    const ok = n >= v;
+    const rec = RECURSOS.find(r => r.id === k) || {};
+    return `<span class="cB${ok ? '' : ' falta'}" title="${rec.n || k}: tienes ${n}, necesitas ${v}">
+      <img src="${rec.mini || ''}" alt="${rec.n || k}"><b>${n}/${v}</b></span>`;
+  }).join('');
+  const avisoFalta = listo ? '' : (canjea
+    ? `<span class="cB" style="box-shadow:0 0 0 1px rgba(150,210,255,.65)"><b style="color:#9fd0ff">canjeando ${falta.map(([k, v]) => (v - (mis[k] || 0)) + ' ' + k.toUpperCase()).join(' + ')}</b></span>`
+    : `<span class="cB falta"><b>te falta ${falta.map(([k, v]) => (v - (mis[k] || 0)) + ' ' + k.toUpperCase()).join(' + ')}</b></span>`);
+  el.innerHTML = cartas + avisoFalta;
+  const btn = $(idBtn);
+  if (btn){
+    btn.disabled = !listo && !canjea;
+    btn.classList.toggle('sinCartas', !listo);
+  }
+}
+
 function pintaRecursos(s){
   const mis = (s.recursos && s.recursos[yo.id]) || {};
   $('recursos').innerHTML = RECURSOS.map(c => {
@@ -1535,6 +1597,11 @@ function pintaRecursos(s){
     return `<span class="cartaRec${cuantos?'':' vacia'}" title="${c.n}">
       <img src="${c.mini}" alt="${c.n}"><b>${cuantos}</b></span>`;
   }).join('');
+  /* y debajo de cada boton, que te diga que tienes y que te falta */
+  pintaCoste('costeCamino', 'bCamino', COSTES.camino, s, mis);
+  pintaCoste('costeBase',   'bBase',   COSTES.base,   s, mis);
+  pintaCoste('costeHub',    'bHub',    COSTES.hub,    s, mis);
+  pintaCoste('costeCarta',  'bCarta',  COSTE_CARTA,   s, mis);
 }
 
 /* ===== LOS COSTES (los mismos que el reglamento) ===== */
