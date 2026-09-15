@@ -335,6 +335,14 @@
     border-radius:50%;min-width:18px;height:18px;display:flex;align-items:center;
     justify-content:center;font-size:10.5px;font-weight:800;
     box-shadow:0 0 0 1.5px #c9a558;padding:0 3px}
+  /* ===== ¿A QUIÉN LE OFRECES? ===== */
+  .pcPara{margin:0 0 13px;text-align:center}
+  .pcQuien{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:7px}
+  .pcQuien span{padding:6px 12px;border-radius:20px;font-size:11px;font-weight:800;
+    color:#c9a558;background:rgba(26,16,9,.72);cursor:pointer;letter-spacing:.4px;
+    box-shadow:0 0 0 1.5px rgba(201,165,88,.45)}
+  .pcQuien span.on{color:#1a1009;background:#f0d899;box-shadow:0 0 0 2px #fff}
+
   .pcBtns{display:flex;flex-direction:column;gap:8px;margin-top:14px}
   .pcPista{font-size:10.5px;color:#e6d6b4;text-align:center;line-height:1.5;
     margin:-6px 0 12px;min-height:30px}
@@ -498,6 +506,10 @@
   <div class="pc">
     <h3>🔄 Comerciar</h3>
     <div class="pcPista" id="pcPista"></div>
+    <div class="pcPara">
+      <div class="pcT">¿A QUIÉN LE OFRECES?</div>
+      <div class="pcQuien" id="pcQuien"></div>
+    </div>
     <div class="pcFila">
       <div class="pcLado">
         <div class="pcT">DAS</div>
@@ -2248,9 +2260,24 @@ async function pintaPanel(){
   const mejor = RECURSOS.reduce((m, c) => Math.min(m, tasaDe(s, c.id)), 4);
   /* ===== SI ESTOY RESPONDIENDO A ALGUIEN =====
      El banco no pinta nada aqui, y el boton dice a quien le mando la propuesta. */
+  /* ===== ¿A QUIÉN LE OFRECES? =====
+     Antes las ofertas iban SIEMPRE a todos. Ahora eliges: TODOS, o un jugador
+     concreto. Si vienes de responder una oferta, ya viene marcado el suyo. */
+  const quien = $('pcQuien');
+  if (quien){
+    const ids = Object.keys(s.jugadores || {}).filter(id => id !== yo.id);
+    quien.innerHTML = '<span data-p=""' + (respondoA ? '' : ' class="on"') + '>TODOS</span>' +
+      ids.map(id => '<span data-p="' + id + '"' + (respondoA === id ? ' class="on"' : '') + '>' +
+        ((s.jugadores[id] || {}).nombre || '?') + '</span>').join('');
+    quien.querySelectorAll('span').forEach(el => el.onclick = () => {
+      respondoA = el.dataset.p || null;
+      pintaPanel();
+    });
+  }
+
   const nombrePara = respondoA ? (((s.jugadores || {})[respondoA] || {}).nombre || '?') : '';
   const h3p = $('panelComercio').querySelector('h3');
-  if (h3p) h3p.textContent = respondoA ? ('🤝 Proponer a ' + nombrePara) : '🔄 Comerciar';
+  if (h3p) h3p.textContent = '🔄 Comerciar';
   $('pcBanco').style.display = respondoA ? 'none' : '';
   $('pcOfrecer').textContent = respondoA
     ? ('🤝 PROPONER A ' + nombrePara.toUpperCase())
