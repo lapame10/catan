@@ -219,14 +219,18 @@
 
   /* ===== LAS TARJETAS DE RECURSO (las que hicimos) ===== */
   .recursos{display:flex;gap:3px;justify-content:center;margin:7px 0 9px}
-  .cartaRec{position:relative;width:52px;flex:0 1 auto;transition:transform .14s}
-  .cartaRec img{width:100%;display:block;border-radius:4px;
-    box-shadow:0 2px 5px rgba(0,0,0,.75), 0 0 0 1px rgba(201,165,88,.5)}
-  .cartaRec b{position:absolute;right:-4px;bottom:-5px;background:#1a1009;color:#f0d899;
-    border-radius:50%;width:19px;height:19px;display:flex;align-items:center;
-    justify-content:center;font-size:11px;box-shadow:0 0 0 1.5px #c9a558}
+  /* ===== TUS CARTAS DE RECURSO =====
+     Sin la franja de texto de abajo (recortada) la carta es mas cuadrada, asi
+     que puedo hacerla MAS GRANDE: asi el nombre del recurso se lee bien. */
+  .cartaRec{position:relative;width:64px;flex:0 1 auto;transition:transform .14s}
+  .cartaRec img{width:100%;display:block;border-radius:5px;
+    box-shadow:0 2px 6px rgba(0,0,0,.8), 0 0 0 1px rgba(201,165,88,.55)}
+  .cartaRec b{position:absolute;right:-5px;bottom:-6px;background:#1a1009;color:#f0d899;
+    border-radius:50%;width:23px;height:23px;display:flex;align-items:center;
+    justify-content:center;font-size:13px;font-weight:800;
+    box-shadow:0 0 0 2px #c9a558}
   .cartaRec.vacia img{filter:grayscale(1) brightness(.45)}
-  .cartaRec.vacia b{color:#8a8178;box-shadow:0 0 0 1.5px #6b6255}
+  .cartaRec.vacia b{color:#8a8178;box-shadow:0 0 0 2px #6b6255}
 
   /* y en el comercio, las cartas grandes */
   .pcRecs{display:flex;gap:4px;justify-content:center;flex-wrap:wrap}
@@ -593,11 +597,11 @@ const COLORES = [
    (que son rojo/azul/verde...). Antes los mezclaba y por eso los contadores
    salian siempre a 0. */
 const RECURSOS = [
-  { id:'flight', n:'FLIGHT', mini:'arte/mini_flight.jpg', carta:'arte/carta_flight.jpg' },
-  { id:'board',  n:'BOARD',  mini:'arte/mini_board.jpg',  carta:'arte/carta_board.jpg'  },
-  { id:'ride',   n:'RIDE',   mini:'arte/mini_ride.jpg',   carta:'arte/carta_ride.jpg'   },
-  { id:'climb',  n:'CLIMB',  mini:'arte/mini_climb.jpg',  carta:'arte/carta_climb.jpg'  },
-  { id:'jump',   n:'JUMP',   mini:'arte/mini_jump.jpg',   carta:'arte/carta_jump.jpg'   },
+  { id:'flight', n:'FLIGHT', mini:'arte/mini2_flight.jpg', carta:'arte/carta2_flight.jpg' },
+  { id:'board',  n:'BOARD',  mini:'arte/mini2_board.jpg',  carta:'arte/carta2_board.jpg'  },
+  { id:'ride',   n:'RIDE',   mini:'arte/mini2_ride.jpg',   carta:'arte/carta2_ride.jpg'   },
+  { id:'climb',  n:'CLIMB',  mini:'arte/mini2_climb.jpg',  carta:'arte/carta2_climb.jpg'  },
+  { id:'jump',   n:'JUMP',   mini:'arte/mini2_jump.jpg',   carta:'arte/carta2_jump.jpg'   },
 ];
 
 const $ = id => document.getElementById(id);
@@ -636,11 +640,38 @@ async function leerSala(cod){
   return snap.exists() ? snap.val() : null;
 }
 
+/* ===== LO QUE HACEN LOS DEMAS, A LA VISTA DE TODOS =====
+   Cada accion deja una nota en la sala (quien + que). Los demas la ven como
+   aviso, asi que sabes si alguien ha construido, comprado una carta o cerrado
+   un trato, sin tener que adivinarlo por los contadores. */
+let ultimaVista = 0;
+async function di(txt){
+  if (!salaCod || !yo) return;
+  try{
+    await update(ref(db,'extreme/salas/'+salaCod),
+      { ultima: { de: yo.id, nombre: yo.nombre, txt: txt, t: Date.now() } });
+  }catch(e){}
+}
+function avisaUltima(s){
+  const u = s.ultima;
+  if (!u || !u.t || !u.de) return;
+  if (u.de === yo.id) return;               /* lo mio ya lo veo yo */
+  if (u.t === ultimaVista) return;          /* ya lo he anunciado */
+  ultimaVista = u.t;
+  aviso((u.nombre || '?') + ' ' + u.txt, '', 4200);
+}
+
 function escuchar(cod){
   if (oyente) oyente();
   oyente = onValue(ref(db, 'extreme/salas/' + cod), snap => {
     const s = snap.val();
     if (!s){ pant('p1'); return; }
+
+    /* ===== AVISAR DE LO QUE HACEN LOS DEMAS =====
+       Pam: "que si otro usuario hace algo, se deje ver que estan haciendo;
+       tipo si compraron algo, que les salga a todos un aviso". Cada accion
+       deja una nota en la sala y aqui se anuncia a los demas. */
+    avisaUltima(s);
 
     /* ===== QUE NUNCA TE DEJE FUERA =====
        Si vuelves a entrar, el juego te da un id nuevo, y entonces el turno
@@ -1598,6 +1629,7 @@ async function comprarCarta(){
   rec[yo.id] = cobra(mis, COSTE_CARTA);
   await update(ref(db,'extreme/salas/'+salaCod), { avMazo: mazo, cartas, recursos: rec });
   aviso(CARTA_AV[tipo].ic + ' ' + CARTA_AV[tipo].n, 'Te ha tocado: ' + CARTA_AV[tipo].d, 4200);
+  di('ha comprado una Carta de Aventura' + (s.avMazo ? ' (quedan ' + (s.avMazo.length - 1) + ')' : ''));
   revisaLogros(await leerSala(salaCod));
   return true;
 }
@@ -1650,6 +1682,7 @@ async function juegaCarta(i){
   await update(ref(db,'extreme/salas/'+salaCod), upd);
   aviso(CARTA_AV[tipo].ic + ' ' + CARTA_AV[tipo].n,
         tipo === 'heli' ? 'Toca un terreno para llevar allí el Mal Tiempo.' : 'Hecho.', 4200);
+  di('ha jugado ' + CARTA_AV[tipo].ic + ' ' + CARTA_AV[tipo].n);
   revisaLogros(await leerSala(salaCod));
 }
 
@@ -1937,6 +1970,8 @@ async function coloca(tipo, clave, hexIdx){
   ponModo(null);
   aviso('✔ ' + NOMBRE[tipo] + ' puesto',
         esGratis ? '¡Gratis! (carta de aventura)' : 'Gastaste ' + textoCoste(coste));
+  di('ha puesto ' + (tipo === 'base' ? 'un Basecamp' : tipo === 'hub' ? 'un Hub' : 'una Ruta') +
+     (s.fase === 'colocando' ? ' (colocación)' : ''));
   revisaLogros(await leerSala(salaCod));
   return true;                       /* el bot necesita saber si funciono */
 }
@@ -2476,6 +2511,7 @@ async function responde(oid, acepta){
     delete ofertas[oid];
     await update(ref(db,'extreme/salas/'+salaCod), { recursos: rec, ofertas });
     aviso('✔ Trato hecho', 'Se ha hecho el cambio');
+    di('ha cerrado un trato con ' + (((s.jugadores || {})[o.de] || {}).nombre || '?'));
     return;
   } else {
     /* ===== RECHAZAR =====
