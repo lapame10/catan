@@ -1580,6 +1580,17 @@ function pintaCoste(idDiv, idBtn, coste, s, mis){
   }
 }
 
+/* ===== LOS 4 COSTES, DE UNA VEZ Y AL FINAL =====
+   Se llama desde pintaPartida DESPUES de todo lo demas: si se llama antes,
+   pintaBarra repinta el boton de la carta y se lleva el coste por delante. */
+function pintaCostes(s){
+  const mis = (s.recursos && s.recursos[yo.id]) || {};
+  pintaCoste('costeCamino', 'bCamino', COSTES.camino, s, mis);
+  pintaCoste('costeBase',   'bBase',   COSTES.base,   s, mis);
+  pintaCoste('costeHub',    'bHub',    COSTES.hub,    s, mis);
+  pintaCoste('costeCarta',  'bCarta',  COSTE_CARTA,   s, mis);
+}
+
 function pintaRecursos(s){
   const mis = (s.recursos && s.recursos[yo.id]) || {};
   $('recursos').innerHTML = RECURSOS.map(c => {
@@ -1587,11 +1598,10 @@ function pintaRecursos(s){
     return `<span class="cartaRec${cuantos?'':' vacia'}" title="${c.n}">
       <img src="${c.mini}" alt="${c.n}"><b>${cuantos}</b></span>`;
   }).join('');
-  /* y debajo de cada boton, que te diga que tienes y que te falta */
-  pintaCoste('costeCamino', 'bCamino', COSTES.camino, s, mis);
-  pintaCoste('costeBase',   'bBase',   COSTES.base,   s, mis);
-  pintaCoste('costeHub',    'bHub',    COSTES.hub,    s, mis);
-  pintaCoste('costeCarta',  'bCarta',  COSTE_CARTA,   s, mis);
+  /* y debajo de cada boton, que te diga que tienes y que te falta.
+     OJO: esto se llama SIEMPRE desde pintaPartida (al final), no desde aqui:
+     antes se llamaba desde tres sitios y el boton de la carta se quedaba sin
+     coste porque pintaBarra lo repintaba despues. */
 }
 
 /* ===== LOS COSTES (los mismos que el reglamento) ===== */
@@ -2286,6 +2296,12 @@ function pintaPartida(s){
     const el = (e.target && e.target.closest) ? e.target.closest('.toque') : null;
     if (el) coloca(el.dataset.t, el.dataset.k, +el.dataset.h);
   };
+
+  /* ===== LO ULTIMO DE TODO: el coste de cada boton =====
+     Aqui ya nadie lo pisa. Antes se pintaba desde pintaRecursos, que corre
+     ANTES de que pintaBarra repinte el boton de la carta: por eso ese boton se
+     quedaba sin sus cartas y sin decirte si te llegaba. */
+  pintaCostes(s);
 }
 
 /* ==========================================================================
