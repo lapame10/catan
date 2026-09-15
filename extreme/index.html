@@ -2577,24 +2577,41 @@ let HEXES = [];      /* los hexagonos de la partida: los usa el bot */
 
 /* reparto los 9 outposts por el borde de la isla, bien separados */
 function ponOutposts(){
-  const borde = [];
-  Object.entries(V).forEach(([k, x]) => {
-    if (x.n === 2 && !cercaDelCentro(x)) borde.push({ k, x: x.x, y: x.y });
-    if (x.n === 1) borde.push({ k, x: x.x, y: x.y });
-  });
-  /* me quedo con los del perimetro exterior, separados entre si */
+  /* ===== LOS 9 OUTPOSTS, REPARTIDOS DE VERDAD =====
+     Antes se cogian los cruces "del borde" en el orden en que salian de V y
+     quedaban descolocados: unos a 166px del centro y otros a 201px, y varios
+     en esquinas sueltas (cruces que solo tocan 1 hexagono). Ahora parto la
+     isla en 9 sectores iguales (360/9 = 40 grados) y pongo un outpost en el
+     cruce MAS EXTERIOR de cada sector, prefiriendo los que tocan 2 hexagonos
+     (que son cruces de verdad). Asi los 9 quedan repartidos alrededor, como
+     en el Catan de verdad. */
   const cx = CX, cy = CY;
-  borde.sort((a,b) => Math.atan2(a.y-cy, a.x-cx) - Math.atan2(b.y-cy, b.x-cx));
+  const borde = Object.entries(V)
+    .filter(([, x]) => x.n <= 2)
+    .map(([k, x]) => ({
+      k, x: x.x, y: x.y, n: x.n,
+      ang: Math.atan2(x.y - cy, x.x - cx),
+      d: Math.hypot(x.x - cx, x.y - cy)
+    }));
+  if (borde.length < 9){ OUTPOSTS = []; return OUTPOSTS; }
+  const sector = (2 * Math.PI) / 9;
   const elegidos = [];
-  const sep = Math.min(...(COLS.length > 5 ? [70] : [62]));
-  borde.forEach(b => {
-    if (elegidos.every(e => Math.hypot(e.x-b.x, e.y-b.y) > sep)) elegidos.push(b);
-  });
-  /* si salen de mas o de menos, me quedo con 9 repartidos */
-  const paso = Math.max(1, Math.floor(elegidos.length / 9));
-  const nueve = [];
-  for (let i=0; i<elegidos.length && nueve.length<9; i+=paso) nueve.push(elegidos[i]);
-  OUTPOSTS = nueve.slice(0,9).map((b, i) => Object.assign({}, b, TIPOS_OUTPOST[i % TIPOS_OUTPOST.length]));
+  for (let s = 0; s < 9; s++){
+    const medio = -Math.PI + s * sector + sector / 2;
+    const enSector = borde.filter(b => {
+      let dif = Math.abs(b.ang - medio);
+      if (dif > Math.PI) dif = 2 * Math.PI - dif;
+      return dif <= sector / 2;
+    });
+    if (!enSector.length) continue;
+    /* primero los cruces de verdad (tocan 2 hexagonos); entre esos, el mas
+       alejado del centro (el del perimetro exterior) */
+    const buenos = enSector.filter(x => x.n === 2);
+    const lista = (buenos.length ? buenos : enSector).slice().sort((a, b) => b.d - a.d);
+    if (!elegidos.some(e => e.k === lista[0].k)) elegidos.push(lista[0]);
+  }
+  OUTPOSTS = elegidos.slice(0, 9).map((b, i) =>
+    Object.assign({}, b, TIPOS_OUTPOST[i % TIPOS_OUTPOST.length]));
   return OUTPOSTS;
 }
 function cercaDelCentro(x){ return Math.hypot(x.x-CX, x.y-CY) < Math.min(...COLS)*RY*0.42; }
