@@ -200,23 +200,21 @@
   /* ===== LOS BOTONES DE ACCION ===== */
   .acciones{margin-top:13px}
   .filaBotones{display:flex;gap:8px;margin-top:11px}
-  .btn.chico{flex:1;font-size:12px;padding:14px 6px;margin-top:0;letter-spacing:.8px}
+  .btn.chico{flex:1;font-size:12px;padding:17px 5px 14px;margin-top:0;letter-spacing:.8px}
 
   /* ===== QUE TE DIGA QUE TIENES Y QUE TE FALTA =====
-     Debajo de cada boton de construir, tus cartas en tienes/necesitas. Las que
-     te faltan salen en rojo y sin color. */
-  .costeBtn{display:flex;gap:5px;justify-content:center;align-items:center;
-    flex-wrap:wrap;margin:5px 0 9px}
-  .costeBtn:empty{display:none}
-  .cB{display:inline-flex;align-items:center;gap:4px;padding:2px 7px 2px 2px;
-    border-radius:14px;background:rgba(26,16,9,.75);
-    box-shadow:0 0 0 1px rgba(201,165,88,.45)}
-  .cB img{width:22px;height:22px;border-radius:50%;display:block}
-  .cB b{font-size:11px;font-weight:800;color:#9fe0a0}
-  .cB.falta{box-shadow:0 0 0 1.5px rgba(255,125,105,.8)}
+     Las cartas van DENTRO del propio boton (Pam) y sin recuadros: solo las
+     miniaturas con tienes/necesitas. Las que faltan, en rojo y sin color. */
+  .costeMini{display:flex;gap:6px;justify-content:center;align-items:center;
+    flex-wrap:wrap;margin-top:8px}
+  .costeMini:empty{display:none}
+  .cB{display:inline-flex;align-items:center;gap:3px}
+  .cB img{width:21px;height:21px;border-radius:50%;display:block;
+    box-shadow:0 1px 3px rgba(0,0,0,.6)}
+  .cB b{font-size:11.5px;font-weight:800;color:#a8e6a8;text-shadow:0 1px 2px rgba(0,0,0,.9)}
   .cB.falta b{color:#ff9a86}
   .cB.falta img{filter:grayscale(.9) brightness(.55)}
-  .btn.sinCartas{opacity:.45}
+  .btn.sinCartas{opacity:.5}
   .btn.chico .ct{display:block;font-size:9px;letter-spacing:0;opacity:.75;margin-top:2px}
   .btn.chico.on{box-shadow:0 0 0 3px #f0d899, 0 3px 0 #5a4212, 0 0 20px rgba(240,216,153,.8);
     transform:translateY(-1px)}
@@ -505,15 +503,11 @@
     <div class="acciones" id="acciones">
       <button class="btn dad" id="bDados">🎲 TIRAR LOS DADOS</button>
       <div class="filaBotones">
-        <button class="btn chico" id="bCamino">RUTA</button>
-        <button class="btn chico" id="bBase">BASECAMP</button>
-        <button class="btn chico" id="bHub">HUB</button>
+        <button class="btn chico" id="bCamino">RUTA<span class="costeMini" id="costeCamino"></span></button>
+        <button class="btn chico" id="bBase">BASECAMP<span class="costeMini" id="costeBase"></span></button>
+        <button class="btn chico" id="bHub">HUB<span class="costeMini" id="costeHub"></span></button>
       </div>
-      <div class="costeBtn" id="costeCamino"></div>
-      <div class="costeBtn" id="costeBase"></div>
-      <div class="costeBtn" id="costeHub"></div>
-      <button class="btn alt" id="bCarta">🃏 COMPRAR CARTA DE AVENTURA</button>
-      <div class="costeBtn" id="costeCarta"></div>
+      <button class="btn alt" id="bCarta">🃏 COMPRAR CARTA DE AVENTURA<span class="costeMini" id="costeCarta"></span></button>
       <div class="misCartas" id="misCartas"></div>
       <button class="btn alt" id="bComercio">🔄 COMERCIAR</button>
       <button class="btn alt" id="bPasar">PASAR EL TURNO</button>
