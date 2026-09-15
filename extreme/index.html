@@ -252,8 +252,18 @@
     border-radius:50%;width:23px;height:23px;display:flex;align-items:center;
     justify-content:center;font-size:13px;font-weight:800;
     box-shadow:0 0 0 2px #c9a558}
-  .cartaRec.vacia img{filter:grayscale(1) brightness(.45)}
-  .cartaRec.vacia b{color:#8a8178;box-shadow:0 0 0 2px #6b6255}
+  /* ===== EL NOMBRE ENCIMA DEL DIBUJO (Pam) =====
+     El dibujo ocupa toda la carta y el nombre va arriba, con ANTON, en el
+     color del deporte y con un degradado oscuro detras para que se lea. */
+  .cartaRec .nomRec{position:absolute;left:0;right:0;top:0;z-index:3;
+    font-family:'Anton',sans-serif;font-style:normal;font-size:11.5px;
+    letter-spacing:.7px;text-align:center;padding:3px 0 9px;pointer-events:none;
+    text-shadow:0 1px 3px #000, 0 0 7px rgba(0,0,0,.95);
+    background:linear-gradient(rgba(0,0,0,.62),rgba(0,0,0,.3) 55%,rgba(0,0,0,0))}
+  /* si no tienes ninguna, se ve el dibujo pero mas suave (antes iba en gris y
+     no se reconocia cual era) */
+  .cartaRec.vacia img{opacity:.68}
+  .cartaRec.vacia b{color:#a89c8a;box-shadow:0 0 0 2px #6b6255}
 
   /* y en el comercio, las cartas grandes */
   .pcRecs{display:flex;gap:4px;justify-content:center;flex-wrap:wrap}
@@ -620,11 +630,11 @@ const COLORES = [
    (que son rojo/azul/verde...). Antes los mezclaba y por eso los contadores
    salian siempre a 0. */
 const RECURSOS = [
-  { id:'flight', n:'FLIGHT', mini:'arte/mini2_flight.jpg', carta:'arte/carta2_flight.jpg' },
-  { id:'board',  n:'BOARD',  mini:'arte/mini2_board.jpg',  carta:'arte/carta2_board.jpg'  },
-  { id:'ride',   n:'RIDE',   mini:'arte/mini2_ride.jpg',   carta:'arte/carta2_ride.jpg'   },
-  { id:'climb',  n:'CLIMB',  mini:'arte/mini2_climb.jpg',  carta:'arte/carta2_climb.jpg'  },
-  { id:'jump',   n:'JUMP',   mini:'arte/mini2_jump.jpg',   carta:'arte/carta2_jump.jpg'   },
+  { id:'flight', n:'FLIGHT', col:'#b07de0', mini:'arte/mini3_flight.jpg', carta:'arte/carta3_flight.jpg' },
+  { id:'board',  n:'BOARD',  col:'#5ec3d9', mini:'arte/mini3_board.jpg',  carta:'arte/carta3_board.jpg'  },
+  { id:'ride',   n:'RIDE',   col:'#8ec94a', mini:'arte/mini3_ride.jpg',   carta:'arte/carta3_ride.jpg'   },
+  { id:'climb',  n:'CLIMB',  col:'#e0954a', mini:'arte/mini3_climb.jpg',  carta:'arte/carta3_climb.jpg'  },
+  { id:'jump',   n:'JUMP',   col:'#e0654a', mini:'arte/mini3_jump.jpg',   carta:'arte/carta3_jump.jpg'   },
 ];
 
 const $ = id => document.getElementById(id);
@@ -1617,13 +1627,15 @@ function pintaRecursos(s){
   const mis = (s.recursos && s.recursos[yo.id]) || {};
   $('recursos').innerHTML = RECURSOS.map(c => {
     const cuantos = mis[c.id] || 0;
+    /* el nombre va ENCIMA del dibujo, con ANTON y en el color del deporte
+       (Pam: "el dibujo atras como fondo de la card y el nombre arriba mas
+       grande"). Asi el dibujo se ve entero y el nombre se lee. */
     return `<span class="cartaRec${cuantos?'':' vacia'}" title="${c.n}">
-      <img src="${c.mini}" alt="${c.n}"><b>${cuantos}</b></span>`;
+      <img src="${c.mini}" alt="${c.n}"><em class="nomRec" style="color:${c.col}">${c.n}</em><b>${cuantos}</b></span>`;
   }).join('');
-  /* y debajo de cada boton, que te diga que tienes y que te falta.
-     OJO: esto se llama SIEMPRE desde pintaPartida (al final), no desde aqui:
-     antes se llamaba desde tres sitios y el boton de la carta se quedaba sin
-     coste porque pintaBarra lo repintaba despues. */
+  /* OJO: los costes de los botones se pintan SIEMPRE desde pintaPartida (al
+     final), no desde aqui: antes se llamaba desde tres sitios y el boton de la
+     carta se quedaba sin coste porque pintaBarra lo repintaba despues. */
 }
 
 /* ===== LOS COSTES (los mismos que el reglamento) ===== */
