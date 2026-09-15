@@ -120,7 +120,17 @@
     box-shadow:0 1px 0 rgba(255,250,225,.7) inset, 0 -3px 8px rgba(70,48,10,.45) inset,
       0 3px 0 #4a3410, 0 5px 11px rgba(0,0,0,.55)}
   /* (el .btn.alt tambien tenia su hebilla aqui; fuera, como la otra) */
-  .btn:disabled{opacity:.5;filter:saturate(.6)}
+  /* ===== CUANDO NO PUEDES, QUE SE VEA QUE NO PUEDES =====
+     Pam: "se ven activos cuando deberian estar desactivados".
+     opacity/filter apagan el boton Y las cartas de dentro, asi que no se
+     distinguian. Ahora uso un VELO oscuro encima del boton, y las cartas van
+     por encima del velo: el boton se ve apagado pero las cartas siguen a
+     color. (::after estaba libre desde que quite la hebilla.) */
+  .btn:disabled, .btn.sinCartas{color:#7c6b4a; cursor:not-allowed}
+  .btn:disabled::after, .btn.sinCartas::after{
+    content:''; position:absolute; inset:0; border-radius:8px;
+    background:rgba(22,15,6,.52); pointer-events:none; z-index:1}
+  .btn .costeMini{position:relative; z-index:2}
 
   .pie{text-align:center;font-size:10px;color:var(--dim);margin-top:15px;line-height:1.6;
     text-shadow:0 1px 3px rgba(0,0,0,.9)}
@@ -212,7 +222,8 @@
   /* ===== LAS CARTAS VAN SIEMPRE A COLOR (Pam) =====
      Antes las que te faltaban salian en gris, y asi no reconoces cual es. Lo
      que marca que te falta es el 0/1 en rojo, no el gris. */
-  .btn.sinCartas{opacity:.72}
+  /* (aqui estaba .btn.sinCartas{opacity:.72}, que hacia que los botones
+     apagados se vieran casi activos. Ahora lo hace el velo de arriba.) */
   .btn.chico .ct{display:block;font-size:9px;letter-spacing:0;opacity:.75;margin-top:2px}
   .btn.chico.on{box-shadow:0 0 0 3px #f0d899, 0 3px 0 #5a4212, 0 0 20px rgba(240,216,153,.8);
     transform:translateY(-1px)}
@@ -1546,7 +1557,7 @@ function pintaBarra(s){
    boton te diga que tienes y que te falta".
    Si no te llegan las exactas pero puedes CANJEAR con las que te sobran,
    el boton sigue vivo (en Catan se puede cambiar 4:1, o mejor con Outpost). */
-function pintaCoste(idDiv, idBtn, coste, s, mis){
+function pintaCoste(idDiv, idBtn, coste, s, mis, puedePulsar){
   const el = $(idDiv);
   if (!el || !coste) return;
   const falta = Object.entries(coste).filter(([k, v]) => (mis[k] || 0) < v);
@@ -1577,7 +1588,13 @@ function pintaCoste(idDiv, idBtn, coste, s, mis){
   el.innerHTML = cartas;
   const btn = $(idBtn);
   if (btn){
-    btn.disabled = !listo && !canjea;
+    /* ===== DESACTIVADO POR DOS MOTIVOS =====
+       1) no te llegan las cartas (ni canjeando)
+       2) NO ES TU TURNO, o la partida esta en la colocacion inicial
+       Antes solo miraba las cartas, y por eso en la colocacion los botones
+       parecian activos: esta funcion corre AL FINAL y pisaba lo que habia
+       puesto pintaBarra. */
+    btn.disabled = (puedePulsar === false) || (!listo && !canjea);
     btn.classList.toggle('sinCartas', !listo);
   }
 }
@@ -1587,10 +1604,13 @@ function pintaCoste(idDiv, idBtn, coste, s, mis){
    pintaBarra repinta el boton de la carta y se lleva el coste por delante. */
 function pintaCostes(s){
   const mis = (s.recursos && s.recursos[yo.id]) || {};
-  pintaCoste('costeCamino', 'bCamino', COSTES.camino, s, mis);
-  pintaCoste('costeBase',   'bBase',   COSTES.base,   s, mis);
-  pintaCoste('costeHub',    'bHub',    COSTES.hub,    s, mis);
-  pintaCoste('costeCarta',  'bCarta',  COSTE_CARTA,   s, mis);
+  /* solo puedes construir si la partida ya empezo y es TU turno */
+  const mio = (s.fase === 'juego') && (s.turno === yo.id);
+  const hayMazo = (s.avMazo || []).length > 0;
+  pintaCoste('costeCamino', 'bCamino', COSTES.camino, s, mis, mio);
+  pintaCoste('costeBase',   'bBase',   COSTES.base,   s, mis, mio);
+  pintaCoste('costeHub',    'bHub',    COSTES.hub,    s, mis, mio);
+  pintaCoste('costeCarta',  'bCarta',  COSTE_CARTA,   s, mis, mio && hayMazo);
 }
 
 function pintaRecursos(s){
