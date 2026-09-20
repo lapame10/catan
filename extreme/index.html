@@ -981,7 +981,7 @@ async function mueveElBot(s){
         (vecinos[v1]=vecinos[v1]||[]).push(v2); (vecinos[v2]=vecinos[v2]||[]).push(v1);
       });
       if (modo === 'base'){
-        const libres = Object.keys(V).filter(k => V[k].n >= 2
+        const libres = Object.keys(V).filter(k => V[k].n >= 1
           && !camps.includes(k)
           && !(vecinos[k]||[]).some(v => camps.includes(v)));
         if (!libres.length){ await avanzaColocacion(); return; }   /* nunca en bucle */
@@ -1436,7 +1436,16 @@ function pintaTablero(hexes){
     h += `<image href="${FOTOS[x.rec]}" x="${(x.cx-HX/2).toFixed(1)}" y="${(x.cy-HY/2).toFixed(1)}"
            width="${HX.toFixed(1)}" height="${HY.toFixed(1)}" preserveAspectRatio="xMidYMid slice"
            clip-path="url(#c${x.id})"/>`;
-    /* la junta: ahora DORADA y fina, como en el tablero de Pam. Ya no es un borde negro. */
+    /* ===== EL BORDE, DEL COLOR DEL RECURSO QUE DA (idea de Pam) =====
+       Se pintan DOS trazos, en este orden:
+         1) el ARO del color, grueso — asi cada hexagono dice de un vistazo que
+            carta da, sin tener que reconocer la foto del terreno.
+         2) la junta oscura, fina, ENCIMA — mantiene la separacion entre
+            hexagonos, para que el tablero no se vea como una mancha de color.
+       El orden importa: si la junta va antes, el aro la tapa y todo se mezcla. */
+    const colRec = (RECURSOS.find(r => r.id === x.rec) || {}).col || '#5f584e';
+    h += `<path d="${pathHex(x.cx,x.cy)}" fill="none" stroke="${colRec}"
+           stroke-width="7" stroke-linejoin="round" opacity=".95"/>`;
     h += `<path d="${pathHex(x.cx,x.cy)}" fill="none" stroke="#1a1009" stroke-width="2.2" stroke-linejoin="round"/>`;
     if (x.num){
       /* el numero, en la esquina de arriba a la derecha, con sus puntitos debajo */
@@ -2243,7 +2252,14 @@ function pintaPartida(s){
       });
     } else {
       Object.entries(V).forEach(([k, x]) => {
-        if (x.n < 2) return;
+        /* ===== OJO CON ESTE FILTRO =====
+           Antes ponia "if (x.n < 2) return;", que esconde los cruces que tocan
+           UN SOLO hexagono. Medido: en el tablero de 19 hay 54 cruces (18 de
+           n=1, 12 de n=2, 24 de n=3). O sea que se estaban escondiendo 18
+           cruces, UN TERCIO DEL TABLERO, y son justo los del perimetro
+           exterior. Pam: "no me deja poner en los bordes y deberia dejarme".
+           En el Catan de verdad los 54 cruces son validos. */
+        if (x.n < 1) return;
         if (!libres(k)) return;                    /* ya hay una pieza ahi */
         /* Al CONSTRUIR (ya jugando) el Basecamp tiene que pegarse a algo tuyo.
            Pero en la COLOCACION INICIAL va donde quieras (mientras no toque
@@ -2265,7 +2281,7 @@ function pintaPartida(s){
       if (s.fase !== 'colocando' && !h.includes('toqVert')){
         let huecos = 0;
         Object.entries(V).forEach(([k, x]) => {
-          if (x.n < 2) return;
+          if (x.n < 1) return;
           if (!libres(k)) return;
           huecos++;
           h += `<circle class="toqHueco" cx="${x.x}" cy="${x.y}" r="10"
