@@ -2249,8 +2249,13 @@ function pintaPartida(s){
   pintaOfertas(s);
   const svg = $('tablero');
   if (!svg) return;
-  /* quito las capas de piezas y las vuelvo a poner */
-  svg.querySelectorAll('.capaPiezas,.capaTocar').forEach(n => n.remove());
+  /* quito las capas de piezas y las vuelvo a poner.
+     OJO: aqui hay que listar TODAS las capas que se pintan en esta funcion.
+     Si se olvida una, se ACUMULA: cada repintado dejaba la capa vieja debajo y
+     añadia otra encima. Con los muelles pasaba eso (habia 2 capas y 18 grupos
+     de 9), y el SVG iba juntando basura en cada turno. */
+  svg.querySelectorAll('.capaPiezas,.capaTocar,.capaOutposts,.capaClima,.clima')
+     .forEach(n => n.remove());
   const P = s.piezas || {};
   /* ===== LOS MUELLES, AL FONDO =====
      Pam: "si alguien pone basecamp en los muelles, no se ve el basecamp".
