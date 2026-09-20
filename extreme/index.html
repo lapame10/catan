@@ -179,8 +179,18 @@
   .barra .j img{width:23px;height:23px;border-radius:50%;display:block}
   .turno{text-align:center;font-size:12.5px;color:#e8c87a;font-weight:800;margin-bottom:10px;
     text-shadow:0 2px 4px rgba(0,0,0,.95)}
-  .mapa{width:100%;display:block;position:relative;margin:2px 0 0}
-  .mapa svg{width:100%;display:block;max-height:62vh}
+  .mapa{width:100%;display:block;position:relative;margin:2px 0 0;touch-action:none}
+  .mapa svg{width:100%;display:block;max-height:74vh}
+  /* el mando para mover y agrandar el tablero (peticion de Pam) */
+  .zoomMando{position:absolute;right:6px;top:6px;display:flex;flex-direction:column;
+    gap:6px;z-index:6}
+  .zoomMando button{width:38px;height:38px;border-radius:10px;border:1.5px solid #c9a558;
+    background:rgba(26,18,11,.85);color:#f0d899;font-size:20px;font-weight:800;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;
+    font-family:inherit;padding:0;line-height:1;touch-action:manipulation}
+  .zoomMando button:active{background:rgba(201,165,88,.35)}
+  .mapa.arrastrando svg{cursor:grabbing}
+  .mapa svg{cursor:grab}
   .fichaInfo{margin-top:10px;font-size:12px;color:#e8dcc0;text-align:center;line-height:1.55;
     min-height:34px;text-shadow:0 2px 4px rgba(0,0,0,.95)}
   .fichaInfo b{color:#f0d899}
@@ -507,7 +517,13 @@
     <!-- TUS RECURSOS -->
     <div class="recursos" id="recursos"></div>
 
-    <div class="mapa"><svg id="tablero" viewBox="0 0 466 500"></svg></div>
+    <div class="mapa" id="mapaBox"><svg id="tablero" viewBox="0 0 466 500"></svg>
+      <div class="zoomMando">
+        <button id="zMas" title="Agrandar">+</button>
+        <button id="zMenos" title="Encoger">−</button>
+        <button id="zReset" title="Ver todo">⟲</button>
+      </div>
+    </div>
 
     <!-- LA GUIA: que terreno da que recurso. Cerrada no ocupa nada. -->
     <details class="guia" id="guia">
@@ -1443,10 +1459,20 @@ function pintaTablero(hexes){
          2) la junta oscura, fina, ENCIMA — mantiene la separacion entre
             hexagonos, para que el tablero no se vea como una mancha de color.
        El orden importa: si la junta va antes, el aro la tapa y todo se mezcla. */
+    /* ===== EL BORDE, DEL COLOR DEL RECURSO QUE DA =====
+       Los hexagonos COMPARTEN los bordes. Un aro centrado en el trazo se mete
+       en el vecino y gana el ultimo que se pinta: por eso la frontera entre un
+       hexagono morado y uno azul salia de un color u otro al azar, y parecia
+       que "los colores no quedaron bien".
+       Solucion: recortar el aro con el clipPath del PROPIO hexagono. Asi el
+       aro queda por DENTRO y cada hexagono tiene su borde limpio, sin pisar
+       al de al lado. El clipPath ya existe (se define mas arriba). */
     const colRec = (RECURSOS.find(r => r.id === x.rec) || {}).col || '#5f584e';
     h += `<path d="${pathHex(x.cx,x.cy)}" fill="none" stroke="${colRec}"
-           stroke-width="7" stroke-linejoin="round" opacity=".95"/>`;
-    h += `<path d="${pathHex(x.cx,x.cy)}" fill="none" stroke="#1a1009" stroke-width="2.2" stroke-linejoin="round"/>`;
+           stroke-width="10" stroke-linejoin="round"
+           clip-path="url(#c${x.id})"/>`;
+    /* y la junta oscura, encima y mas fina, para que se vea donde acaba cada uno */
+    h += `<path d="${pathHex(x.cx,x.cy)}" fill="none" stroke="#1a1009" stroke-width="2" stroke-linejoin="round"/>`;
     if (x.num){
       /* el numero, en la esquina de arriba a la derecha, con sus puntitos debajo */
       const nx = x.cx + R*0.52, ny = x.cy - R*0.34;
@@ -2111,6 +2137,90 @@ async function avanzaColocacion(){
 }
 
 /* ===== VOLVER A PINTAR: recursos, dados y piezas encima del tablero ===== */
+/* ==========================================================================
+   MOVER Y AGRANDAR EL TABLERO (peticion de Pam: "que lo pueda manipular sobre
+   la pantalla, hacer grande, chico")
+   --------------------------------------------------------------------------
+   Se hace moviendo el viewBox del SVG, NO con transform: scale().
+
+   El motivo importa: los clics del tablero se resuelven con createSVGPoint() +
+   getScreenCTM().inverse(), que traduce la posicion del dedo a coordenadas del
+   SVG. Si escalo con transform:scale(), el navegador NO tiene eso en cuenta y
+   los toques se descolocan: no habria forma de acertar a un cruce. Con el
+   viewBox lo recalcula el propio navegador y todo sigue cuadrando.
+   ========================================================================== */
+let vbBase = null, vb = null, arrastrando = null, huboArrastre = false;
+const punterosVb = {};
+
+function cogeVb(){
+  const svg = $('tablero');
+  if (!svg) return null;
+  const v = (svg.getAttribute('viewBox') || '0 0 466 500').split(/\s+/).map(Number);
+  if (!vbBase || Math.abs(vbBase[2] - v[2]) > 0.5){ vbBase = v.slice(); vb = v.slice(); }
+  return v;
+}
+function ponVb(){
+  const svg = $('tablero');
+  if (svg && vb) svg.setAttribute('viewBox', vb.map(n => n.toFixed(2)).join(' '));
+}
+function zoomTab(f){
+  if (!vb) cogeVb();
+  if (!vbBase) return;
+  const nw = Math.max(vbBase[2] * 0.3, Math.min(vbBase[2], vb[2] / f));
+  const nh = nw * (vbBase[3] / vbBase[2]);
+  const mx = vb[0] + vb[2] / 2, my = vb[1] + vb[3] / 2;
+  vb = [mx - nw / 2, my - nh / 2, nw, nh];
+  ponVb();
+}
+function resetTab(){ if (!vbBase) cogeVb(); if (vbBase) vb = vbBase.slice(); ponVb(); }
+
+(function motorTablero(){
+  const svg = $('tablero'), caja = $('mapaBox');
+  if (!svg || !caja) return;
+  if ($('zMas')){
+    $('zMas').onclick   = e => { e.stopPropagation(); zoomTab(1.4); };
+    $('zMenos').onclick = e => { e.stopPropagation(); zoomTab(1 / 1.4); };
+    $('zReset').onclick = e => { e.stopPropagation(); resetTab(); };
+  }
+  /* la rueda del raton, para la compu */
+  caja.addEventListener('wheel', e => {
+    e.preventDefault();
+    zoomTab(e.deltaY < 0 ? 1.12 : 1 / 1.12);
+  }, { passive: false });
+
+  caja.addEventListener('pointerdown', e => {
+    punterosVb[e.pointerId] = { x: e.clientX, y: e.clientY };
+    if (Object.keys(punterosVb).length === 1){
+      const v0 = vb || cogeVb();
+      arrastrando = v0 ? { x: e.clientX, y: e.clientY, vb0: v0.slice() } : null;
+      huboArrastre = false;
+    }
+  });
+  caja.addEventListener('pointermove', e => {
+    if (!punterosVb[e.pointerId] || !arrastrando) return;
+    punterosVb[e.pointerId] = { x: e.clientX, y: e.clientY };
+    if (Object.keys(punterosVb).length >= 2) return;      /* con dos dedos, quieto */
+    const r = svg.getBoundingClientRect();
+    if (!r.width || !arrastrando.vb0.length) return;
+    const mov = Math.abs(e.clientX - arrastrando.x) + Math.abs(e.clientY - arrastrando.y);
+    if (mov > 7){ huboArrastre = true; caja.classList.add('arrastrando'); }
+    const dx = (e.clientX - arrastrando.x) * arrastrando.vb0[2] / r.width;
+    const dy = (e.clientY - arrastrando.y) * arrastrando.vb0[3] / r.height;
+    vb = [arrastrando.vb0[0] - dx, arrastrando.vb0[1] - dy, arrastrando.vb0[2], arrastrando.vb0[3]];
+    ponVb();
+  });
+  const suelta = e => {
+    delete punterosVb[e.pointerId];
+    arrastrando = null;
+    caja.classList.remove('arrastrando');
+    /* el onclick llega DESPUES del pointerup: doy un momento antes de limpiar */
+    setTimeout(() => { huboArrastre = false; }, 120);
+  };
+  caja.addEventListener('pointerup', suelta);
+  caja.addEventListener('pointercancel', suelta);
+  caja.addEventListener('pointerleave', suelta);
+})();
+
 function pintaPartida(s){
   pintaBarra(s);
   pintaRecursos(s);
@@ -2298,12 +2408,17 @@ function pintaPartida(s){
   h += '<g class="capaOutposts">';
   OUTPOSTS.forEach(o => {
     const col = o.r ? (RECURSOS.find(x => x.id === o.r) || {}) : {};
-    h += `<g class="outpost">
-      <circle cx="${o.x.toFixed(1)}" cy="${o.y.toFixed(1)}" r="15"
-        fill="#2a1d12" stroke="#c9a558" stroke-width="2.2"
+    /* Los puertos estaban con r=15 encima de los cruces, y los puntos donde
+       tocas son r=13: el puerto se los comia y no dejaba tocar el vertice.
+       Ahora son mas pequeños, y ademas se ATENUAN cuando estas colocando, para
+       que el circulo verde del cruce se vea por encima. */
+    const atenuado = modo ? ' opacity=".32"' : '';
+    h += `<g class="outpost"${atenuado}>
+      <circle cx="${o.x.toFixed(1)}" cy="${o.y.toFixed(1)}" r="11"
+        fill="#2a1d12" stroke="#c9a558" stroke-width="1.8"
         style="filter:drop-shadow(0 2px 5px rgba(0,0,0,.85))"/>
-      <text x="${o.x.toFixed(1)}" y="${(o.y-1).toFixed(1)}" text-anchor="middle"
-        style="font-family:Anton,sans-serif;font-size:11px;fill:#f0d899">${o.t}</text>
+      <text x="${o.x.toFixed(1)}" y="${(o.y-0.5).toFixed(1)}" text-anchor="middle"
+        style="font-family:Anton,sans-serif;font-size:9.5px;fill:#f0d899">${o.t}</text>
       ${o.r ? `<text x="${o.x.toFixed(1)}" y="${(o.y+9.5).toFixed(1)}" text-anchor="middle"
         style="font-family:Anton,sans-serif;font-size:7.5px;fill:#fff">${(col.n||'').slice(0,4)}</text>` : ''}
     </g>`;
@@ -2316,6 +2431,9 @@ function pintaPartida(s){
      Antes habia que acertarle a una linea fina. Ahora el juego coge la arista
      (o el cruce) MAS CERCANO a donde tocas, como el Catan digital. */
   svg.onclick = (e) => {
+    /* si acabas de ARRASTRAR el tablero, el toque no cuenta: si no, cada vez
+       que mueves el mapa colocarias una pieza sin querer */
+    if (huboArrastre) return;
     const todos = [...svg.querySelectorAll('.toque')];
     if (!todos.length) return;
 
