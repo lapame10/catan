@@ -2259,7 +2259,7 @@ function pintaPartida(s){
      cayera ahi quedaba enterrado debajo. Ahora los muelles son el FONDO del
      tablero y las piezas van encima. El muelle se sigue viendo perfectamente
      (es una pieza del tablero, no un adorno), pero ya no se come nada. */
-  h += '<g class="capaOutposts">';
+  let h = '<g class="capaOutposts">';   /* h se declara AQUI, que es donde se usa por primera vez */
   OUTPOSTS.forEach(o => {
     const col = o.r ? (RECURSOS.find(x => x.id === o.r) || {}) : {};
     /* y se ATENUAN cuando estas colocando, para que se vea el cruce */
@@ -2276,7 +2276,7 @@ function pintaPartida(s){
   });
   h += '</g>';
   /* ===== Y LAS PIEZAS, ENCIMA DE LOS MUELLES ===== */
-  let h = '<g class="capaPiezas">';
+  h += '<g class="capaPiezas">';
   Object.entries(P).forEach(([id, pp]) => {
     const col = COLORES.find(c => c.id === ((s.jugadores||{})[id]||{}).color) || COLORES[0];
     (pp.camino||[]).forEach(r => {
