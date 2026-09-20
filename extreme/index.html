@@ -2180,6 +2180,12 @@ function dosDedos(){
   caja.addEventListener('pointerdown', e => {
     punterosVb[e.pointerId] = { x: e.clientX, y: e.clientY };
     const n = Object.keys(punterosVb).length;
+    /* EL FLAG SE LIMPIA AQUI, al EMPEZAR un toque.
+       Antes se limpiaba con un setTimeout en el pointerup, pero el 'click'
+       llega ANTES de que ese temporizador corra (pointerdown -> pointermove ->
+       pointerup -> click son seguidos). Asi que el click leia el flag todavia
+       en true y el toque se ignoraba. Limpiandolo aqui, el click del toque
+       actual lo lee bien y el siguiente toque parte limpio. */
     if (n === 1){
       const v0 = vb || cogeVb();
       arrastrando = v0 ? { x: e.clientX, y: e.clientY, vb0: v0.slice() } : null;
@@ -2216,8 +2222,15 @@ function dosDedos(){
     if (!arrastrando) return;
     const r = svg.getBoundingClientRect();
     if (!r.width || !arrastrando.vb0.length) return;
+    /* 14 y no 7: un dedo nunca se queda perfectamente quieto, y con 7px
+       cualquier toque se marcaba como arrastre. */
     const mov = Math.abs(e.clientX - arrastrando.x) + Math.abs(e.clientY - arrastrando.y);
-    if (mov > 7){ huboArrastre = true; caja.classList.add('arrastrando'); }
+    if (mov > 14){ huboArrastre = true; caja.classList.add('arrastrando'); }
+    else {
+      /* temblor pequeño del dedo: NO muevo el tablero. Si lo moviera con cada
+         temblor, el mapa se iria desplazando solo y acabaria descolocado. */
+      return;
+    }
     const dx = (e.clientX - arrastrando.x) * arrastrando.vb0[2] / r.width;
     const dy = (e.clientY - arrastrando.y) * arrastrando.vb0[3] / r.height;
     vb = [arrastrando.vb0[0] - dx, arrastrando.vb0[1] - dy, arrastrando.vb0[2], arrastrando.vb0[3]];
@@ -2235,8 +2248,10 @@ function dosDedos(){
     }
     arrastrando = null;
     caja.classList.remove('arrastrando');
-    /* el onclick llega DESPUES del pointerup: doy un momento antes de limpiar */
-    setTimeout(() => { huboArrastre = false; }, 120);
+    /* NO limpio huboArrastre aqui: el 'click' viene DESPUES de este pointerup,
+       y si lo limpiara ahora el click creeria que fue un toque limpio y
+       colocaria una pieza al terminar de mover el mapa.
+       Se limpia al EMPEZAR el toque siguiente (ver pointerdown). */
   };
   caja.addEventListener('pointerup', suelta);
   caja.addEventListener('pointercancel', suelta);
