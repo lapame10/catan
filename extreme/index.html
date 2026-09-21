@@ -1994,6 +1994,24 @@ async function eligeRecurso(rid){
   }
 }
 
+/* el panel para elegir a quien le robas, cuando hay mas de uno en el terreno */
+function pintaRobaDe(s){
+  const el = $('robaDe');
+  if (!el) return;
+  const r = s.robaDe;
+  if (!r || r.id !== yo.id){ el.classList.remove('on'); return; }
+  el.classList.add('on');
+  el.innerHTML =
+    '<div class="panelTit">🌩️ ¿A quién le robas?</div>' +
+    '<div class="panelSub">Hay más de uno en ese terreno. Elige a uno.</div>' +
+    (r.quienes || []).map(id => {
+      const j = (s.jugadores || {})[id] || {};
+      const n = Object.values((s.recursos || {})[id] || {}).reduce((a, b) => a + b, 0);
+      return '<button class="robaBtn" onclick="robaA(\'' + id + '\',' + r.hex + ')">' +
+        (j.nombre || '?') + ' · ' + n + (n === 1 ? ' carta' : ' cartas') + '</button>';
+    }).join('');
+}
+
 function pintaDescarte(s){
   const el = $('descarte');
   if (!el) return;
