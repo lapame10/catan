@@ -1902,11 +1902,27 @@ async function mueveClimaA(idx){
           '<br>No había nadie allí.', 4600);
     return;
   }
-  if (candidatos.length === 1){
-    await robaA(candidatos[0], idx);
+  /* ===== SI SOY UN BOT, ELIJO SOLO =====
+     Antes, con dos o mas candidatos, se ponia el panel y esperaba a que alguien
+     eligiera. Pero si el que tira los dados es un BOT, nadie iba a tocar ese
+     panel: el Mal Tiempo se quedaba sin mover y el juego se atascaba en bucle
+     (Pam: "los bot cuando salen en una casilla 7 no estan eligiendo a quien
+     robar y se queda en un loop"). Un bot roba al que MAS cartas tiene, que es
+     lo que haria cualquiera. */
+  const soyBot = !!((s.jugadores || {})[yo.id] || {}).esBot;
+  if (candidatos.length === 1 || soyBot){
+    let victima = candidatos[0];
+    if (soyBot && candidatos.length > 1){
+      victima = candidatos.slice().sort((a, b) => {
+        const na = Object.values((s.recursos || {})[a] || {}).reduce((x, y) => x + y, 0);
+        const nb2 = Object.values((s.recursos || {})[b] || {}).reduce((x, y) => x + y, 0);
+        return nb2 - na;
+      })[0];
+    }
+    await robaA(victima, idx);
     return;
   }
-  /* dos o mas: que elija */
+  /* dos o mas y soy persona: que elija */
   await update(ref(db,'extreme/salas/'+salaCod), { clima: idx, robaDe: { id: yo.id, hex: idx, quienes: candidatos } });
   aviso('🌩️ ¿A quién le robas?', 'Hay más de uno ahí. <b>Elige abajo</b>.', 4600);
 }
