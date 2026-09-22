@@ -3586,9 +3586,9 @@ function calculaPosiciones(){
 
 /* el boton de pasar: rota al siguiente piloto y limpia los dados */
 async function pasarTurno(){
-  if (!salaCod) return;
+  if (!salaCod) return null;
   const s = await leerSala(salaCod);
-  if (!s || s.turno !== yo.id) return;
+  if (!s || s.turno !== yo.id) return null;
   const ids = Object.keys(s.jugadores || {});
   const sig = ids[(ids.indexOf(yo.id) + 1) % ids.length];
   ponModo(null);
@@ -3596,8 +3596,37 @@ async function pasarTurno(){
   const ah = Object.assign({}, s.compradaAhora || {});
   delete ah[yo.id];
   await update(ref(db,'extreme/salas/'+salaCod), { turno: sig, dados: null, compradaAhora: ah });
+  /* devuelvo el NOMBRE del siguiente, para poder avisarlo */
+  return ((s.jugadores || {})[sig] || {}).nombre || 'el siguiente';
 }
-$('bPasar').onclick = pasarTurno;
+/* ===== EL BOTON DE PASAR, CON RESPUESTA INMEDIATA =====
+   Pam: "el boton de pasar el turno no se desactiva hasta que el siguiente
+   jugador avienta los dados, pero si no estas en persona puede parecer que no
+   se esta activando el boton".
+   Antes, al pulsar PASAR el boton seguia igual hasta que el servidor contestaba
+   y llegaba su aviso. Y si el otro no estaba mirando, no cambiaba NADA en tu
+   pantalla: parecia que el boton no habia funcionado y lo volvias a pulsar.
+   Ahora se apaga AL INSTANTE (sin esperar a la red), pone PASANDO…, y te dice
+   a quien le toca. */
+$('bPasar').onclick = async function(){
+  const b = $('bPasar');
+  if (b.disabled) return;
+  b.disabled = true;
+  b.textContent = 'PASANDO…';
+  try{
+    const nombre = await pasarTurno();
+    if (nombre){
+      aviso('➡️ Turno pasado', 'Le toca a <b>' + nombre + '</b>.<br>Esperando a que tire los dados…', 4400);
+    } else {
+      /* no se pudo (ya no era mi turno): repinto para que se vea el estado real */
+      const ss = await leerSala(salaCod);
+      if (ss) pintaPartida(ss);
+    }
+  }catch(e){
+    const ss = await leerSala(salaCod);
+    if (ss) pintaPartida(ss);
+  }
+};
 
 $('bEmpezar').onclick = async () => {
   if (!salaCod) return;
