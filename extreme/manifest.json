@@ -1,0 +1,17 @@
+{
+  "name": "EXTREME — el juego de la aventura",
+  "short_name": "EXTREME",
+  "description": "Juego de mesa de exploración y aventura: vuela, explora, sube y salta.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1a120b",
+  "theme_color": "#1a120b",
+  "lang": "es",
+  "icons": [
+    { "src": "arte/icono-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "arte/icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "arte/icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
