@@ -904,17 +904,28 @@ function escuchar(cod){
       /* ===== SI LE TOCA A UN BOT, LO MUEVE QUIEN ESTE MIRANDO ===== */
       mueveElBot(s);
 
-      if (s.fase === 'colocando' && s.turno === yo.id){
-        const quiero = s.colocPaso || 'base';
-        if (modo !== quiero){ modo = quiero; }
-      } else if (s.fase === 'juego' && modo){
-        /* ===== SOLTAR EL MODO DE LA COLOCACION =====
+      if (s.fase === 'colocando'){
+        /* partida nueva: vuelvo a permitir el soltado del modo */
+        modoSoltado = false;
+        if (s.turno === yo.id){
+          const quiero = s.colocPaso || 'base';
+          if (modo !== quiero){ modo = quiero; }
+        }
+      } else if (s.fase === 'juego' && modo && !modoSoltado){
+        /* ===== SOLTAR EL MODO DE LA COLOCACION (UNA SOLA VEZ) =====
            Al empezar la partida el modo se quedaba encendido por dentro, pero
            el boton se veia APAGADO. Entonces tu primer toque en RUTA o
            BASECAMP lo APAGABA en vez de encenderlo, y no salia ningun punto:
-           "me dice que voy y no me deja". */
+           "me dice que voy y no me deja".
+
+           OJO: esto se hacia en CADA aviso del servidor, y la sala avisa
+           constantemente. Asi que cualquier modo que encendieras tu se apagaba
+           solo al llegar el siguiente aviso: Pam "aun no puedo poner los
+           caminos de la carta de dos caminos" — encendia el modo y se apagaba.
+           Ahora se suelta UNA vez, al pasar de colocar a jugar. */
+        modoSoltado = true;
         modo = null;
-        ['bCamino','bBase','bHub'].forEach(b => $(b).classList.remove('on'));
+        ['bCamino','bBase','bHub'].forEach(b => { const el = $(b); if (el) el.classList.remove('on'); });
         $('info').innerHTML = '';
       }
       /* PRIMERO las posiciones y DESPUES pintar: los puntos para tocar salen
@@ -2222,6 +2233,7 @@ $('bSalir5').onclick = abandona;
 
 /* ===== CONSTRUIR: eliges que, y tocas el tablero ===== */
 let modo = null;   // 'camino' | 'base' | 'hub' | null
+let modoSoltado = false;   // ¿ya solte el modo de la colocacion en esta partida?
 async function ponModo(m){
   modo = (modo === m) ? null : m;
   ['bCamino','bBase','bHub'].forEach(b => $(b).classList.remove('on'));
@@ -2597,6 +2609,7 @@ function pintaPartida(s){
   pintaBarra(s);
   pintaRecursos(s);
   pintaOfertas(s);
+  avisaRechazos(s);
   pintaEligeRec(s);
   pintaDescarte(s);
   pintaRobaDe(s);
@@ -3019,6 +3032,34 @@ $('pcOfrecer').onclick = async () => {
 };
 
 /* pintar las ofertas que hay en la mesa */
+/* Pam: "cuando te rechazan la oferta estaria bueno saber que la rechazaron".
+   Devuelve el aviso de quienes la han rechazado, o '' si nadie todavia. */
+function rechazoTexto(o, nombres){
+  const r = Object.keys(o.rechazaron || {}).filter(id => o.rechazaron[id]);
+  if (!r.length) return '';
+  return '<div class="mia" style="color:#e0796a">Te la rechazó ' +
+    r.map(id => nombres[id] || '?').join(', ') + '</div>';
+}
+
+/* y si llega un rechazo nuevo, que salte el aviso: si no, te enteras solo si
+   miras el panel, y Pam decia "te quedas esperando". */
+let _rechazosVistos = {};
+function avisaRechazos(s){
+  Object.entries(s.ofertas || {}).forEach(([k, o]) => {
+    if (o.de !== yo.id) return;                 /* solo mis ofertas */
+    const r = Object.keys(o.rechazaron || {});
+    const antes = _rechazosVistos[k] || [];
+    const nuevos = r.filter(id => !antes.includes(id));
+    if (nuevos.length){
+      const nombres = nuevos.map(id => (((s.jugadores || {})[id] || {}).nombre || '?'));
+      aviso('🚫 Te rechazaron la oferta',
+        nombres.join(', ') + (nombres.length === 1 ? ' no quiere el cambio.' : ' no quieren el cambio.') +
+        '<br>Puedes cambiar la oferta o retirarla.', 5200);
+    }
+    _rechazosVistos[k] = r;
+  });
+}
+
 function pintaOfertas(s){
   const of = s.ofertas || {};
   const el = $('ofertas');
@@ -3040,8 +3081,8 @@ function pintaOfertas(s){
     return `<div class="oferta">
       <div class="quien">${nombres[o.de] || '?'} ofrece</div>
       <div class="cambio">da <b>${txt(o.doy)}</b><br>y quiere <b>${txt(o.pido)}</b></div>
-      ${ mia ? `<div class="mia">Tu oferta — esperando respuesta…</div>
-                <div class="bb"><button class="no" data-x="${k}">RETIRAR</button></div>`
+      ${ mia ? (rechazoTexto(o, nombres) || `<div class="mia">Tu oferta — esperando respuesta…</div>`)
+                + `<div class="bb"><button class="no" data-x="${k}">RETIRAR</button></div>`
             : `<div class="bb">
                  <button class="si" data-a="${k}" ${puedo?'':'disabled style="opacity:.4"'}>ACEPTAR</button>
                  <button class="no" data-r="${k}">RECHAZAR</button>
@@ -3161,6 +3202,14 @@ async function responde(oid, acepta){
     ofertas[oid] = Object.assign({}, ofertas[oid]);
     ofertas[oid].no = Object.assign({}, ofertas[oid].no || {});
     ofertas[oid].no[yo.id] = true;
+    /* ===== QUE EL QUE LA HIZO SE ENTERE =====
+       Pam: "cuando te rechazan la oferta estaria bueno saber que la rechazaron,
+       porque si no te quedas esperando". Antes el rechazo solo se apuntaba en
+       'no' y el que ofrecio seguia viendo "esperando respuesta..." para
+       siempre. Ahora se guarda quien rechazo y se lo enseño. */
+    ofertas[oid].rechazaron = Object.assign({}, ofertas[oid].rechazaron || {});
+    ofertas[oid].rechazaron[yo.id] = true;
+    if (o.de === yo.id) return;      /* nadie rechaza su propia oferta */
     const otros = Object.keys(s.jugadores || {}).filter(id => id !== o.de);
     if (otros.length && otros.every(id => ofertas[oid].no[id])){
       const limpio = Object.assign({}, ofertas);
