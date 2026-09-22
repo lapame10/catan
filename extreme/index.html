@@ -1770,10 +1770,18 @@ function pintaCostes(s){
      Ahora, si te quedan rutas gratis, el coste va vacio -> el boton se activa
      y no pide nada. */
   const gratisRuta = ((s.gratis && s.gratis[yo.id]) || 0) > 0;
-  pintaCoste('costeCamino', 'bCamino', gratisRuta ? {} : COSTES.camino, s, mis, mio || gratisRuta);
-  pintaCoste('costeBase',   'bBase',   COSTES.base,   s, mis, mio);
-  pintaCoste('costeHub',    'bHub',    COSTES.hub,    s, mis, mio);
-  pintaCoste('costeCarta',  'bCarta',  COSTE_CARTA,   s, mis, mio && hayMazo);
+  /* ===== ESTA FUNCION CORRE AL FINAL, ASI QUE MANDA ELLA =====
+     Pam: "antes de tirar solo puedes usar la carta de el helicoptero, todo lo
+     demas es hasta despues de tirar".
+     pintaCostes se llama DESPUES de pintaBarra, asi que si aqui pongo 'se
+     puede', piso lo que hubiera puesto antes. Por eso los botones de construir
+     seguian activos sin dados. Tiene que saber tambien del turno Y de los
+     dados. Es el mismo detalle que rompio el boton de la RUTA gratis. */
+  const puedoYa = mio && !!s.dados;
+  pintaCoste('costeCamino', 'bCamino', gratisRuta ? {} : COSTES.camino, s, mis, puedoYa || (gratisRuta && puedoYa));
+  pintaCoste('costeBase',   'bBase',   COSTES.base,   s, mis, puedoYa);
+  pintaCoste('costeHub',    'bHub',    COSTES.hub,    s, mis, puedoYa);
+  pintaCoste('costeCarta',  'bCarta',  COSTE_CARTA,   s, mis, puedoYa && hayMazo);
   /* y si te quedan rutas gratis, que se VEA: el boton pone GRATIS */
   const cc = $('costeCamino');
   if (cc) cc.innerHTML = gratisRuta
