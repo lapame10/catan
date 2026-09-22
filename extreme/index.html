@@ -2662,6 +2662,7 @@ function pintaPartida(s){
   pintaBarra(s);
   pintaRecursos(s);
   pintaOfertas(s);
+  leeBuzon(s);
   avisaRechazos(s);
   pintaEligeRec(s);
   pintaDescarte(s);
@@ -3085,6 +3086,25 @@ $('pcOfrecer').onclick = async () => {
 };
 
 /* pintar las ofertas que hay en la mesa */
+/* ===== EL BUZON DE AVISOS DEL COMERCIO =====
+   Cuando alguien acepta o rechaza TU oferta, se te deja un aviso con su NOMBRE
+   y sale en pantalla una sola vez. Pam: "que cuando te acepten o declinen la
+   oferta te diga quien". */
+let _buzonVisto = 0;
+function leeBuzon(s){
+  let b = (s.buzon || {})[yo.id];
+  /* el del rechazo viaja dentro de la oferta, porque la oferta sigue viva */
+  Object.values(s.ofertas || {}).forEach(o => {
+    const x = o && o.buzon && o.buzon[yo.id];
+    if (x && (!b || x.ts > b.ts)) b = x;
+  });
+  if (!b || !b.ts) return;
+  if (_buzonVisto === b.ts) return;
+  _buzonVisto = b.ts;
+  aviso('🔄 Comercio', b.t, 6400);
+  try { update(ref(db,'extreme/salas/'+salaCod), { ['buzon/' + yo.id]: null }); } catch(e){}
+}
+
 /* Pam: "cuando te rechazan la oferta estaria bueno saber que la rechazaron".
    Devuelve el aviso de quienes la han rechazado, o '' si nadie todavia. */
 function rechazoTexto(o, nombres){
@@ -3241,8 +3261,19 @@ async function responde(oid, acepta){
       rec[o.de][k]  = (rec[o.de][k]||0) + o.pido[k];
     }
     delete ofertas[oid];
-    await update(ref(db,'extreme/salas/'+salaCod), { recursos: rec, ofertas });
-    aviso('✔ Trato hecho', 'Se ha hecho el cambio');
+    /* ===== QUE EL QUE LA HIZO SEPA QUIEN ACEPTO =====
+       Pam: "que cuando te acepten o declinen la oferta te diga quien". Antes el
+       que aceptaba veia 'Trato hecho', pero el que habia hecho la oferta no se
+       enteraba de NADA: la oferta desaparecia y ya. Ahora se le deja un aviso
+       en su buzon con el nombre de quien acepto. */
+    const buzon = Object.assign({}, s.buzon || {});
+    buzon[o.de] = {
+      t: '<b>' + (yo.nombre || 'Alguien') + '</b> aceptó tu oferta. ¡Trato hecho!',
+      ts: Date.now()
+    };
+    await update(ref(db,'extreme/salas/'+salaCod), { recursos: rec, ofertas, buzon });
+    aviso('✔ Trato hecho',
+      'Se ha hecho el cambio con <b>' + (((s.jugadores || {})[o.de] || {}).nombre || '?') + '</b>');
     di('ha cerrado un trato con ' + (((s.jugadores || {})[o.de] || {}).nombre || '?'));
     return;
   } else {
@@ -3271,6 +3302,12 @@ async function responde(oid, acepta){
       aviso('🚫 Oferta retirada', 'Nadie la quiso, así que se ha quitado.');
       return;
     }
+    /* y al que la hizo le dejo el aviso, con el NOMBRE de quien dijo que no */
+    ofertas[oid].buzon = Object.assign({}, ofertas[oid].buzon || {});
+    ofertas[oid].buzon[o.de] = {
+      t: '<b>' + (yo.nombre || 'Alguien') + '</b> dijo que <b>no</b> a tu oferta.',
+      ts: Date.now()
+    };
     aviso('🚫 Rechazada', 'No te la volveremos a ofrecer. Sigue en la mesa para los demás.', 3200);
   }
   await update(ref(db,'extreme/salas/'+salaCod), { ofertas });
@@ -3475,7 +3512,8 @@ $('bEmpezar').onclick = async () => {
     orden, colocadoEn: 0, turno: orden[0],
     /* el Mal Tiempo, las cartas de aventura y los logros */
     clima: sitioDelClima(hexes), avMazo: mazoAventura(),
-    cartas:{}, gratis:{}, helis:{}, logros:{}, ganador:null, mueveElClima:null
+    cartas:{}, gratis:{}, helis:{}, logros:{}, ganador:null, mueveElClima:null,
+    buzon:{}, compradaAhora:{}
   });
 };
 $('bLink').onclick = async () => {
