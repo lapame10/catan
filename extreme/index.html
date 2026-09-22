@@ -1657,7 +1657,11 @@ function pintaBarra(s){
     : (mio ? 'PASAR EL TURNO' : 'ESPERANDO…');
   $('bDados').disabled = !mio || !!s.dados;
   $('bDados').textContent = !mio ? '🎲 ESPERANDO…' : (s.dados ? '🎲 SACASTE ' + s.dados.total : '🎲 TIRAR LOS DADOS');
-  ['bCamino','bBase','bHub','bComercio'].forEach(b => $(b).disabled = !mio);
+  ['bCamino','bBase','bHub'].forEach(b => $(b).disabled = !mio);
+  /* ===== EL COMERCIO NECESITA HABER TIRADO LOS DADOS =====
+     Pam: "no se debe de poder comerciar antes de tirar los dados".
+     Se puede CONSTRUIR antes de tirar, pero comerciar no: primero se tira. */
+  $('bComercio').disabled = !mio || !s.dados;
 
   /* ===== LA CARTA DE AVENTURA ===== */
   const mazoN = (s.avMazo || []).length;
@@ -3006,7 +3010,17 @@ let doy = {}, pido = {};
    todos (lo normal). Si tiene un id, va solo para esa persona. */
 let respondoA = null;
 
-function abreComercio(para){
+async function abreComercio(para){
+  /* ===== PRIMERO LOS DADOS, DESPUES COMERCIAR =====
+     Pam: "no se debe de poder comerciar antes de tirar los dados".
+     La contra-oferta (cuando te ofrecen algo) SI se puede: eso es responder. */
+  if (!para){
+    const ss = await leerSala(salaCod);
+    if (ss && !ss.dados){
+      aviso('Primero los dados', 'El comercio va <b>después de tirar</b> los dados.', 3600);
+      return;
+    }
+  }
   doy = {}; pido = {}; respondoA = (typeof para === 'string') ? para : null;
   pintaPanel();
   $('panelComercio').classList.add('on');
