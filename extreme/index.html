@@ -1882,6 +1882,20 @@ async function juegaCarta(i){
   aviso(CARTA_AV[tipo].ic + ' ' + CARTA_AV[tipo].n,
         tipo === 'heli' ? 'Toca un terreno para llevar allí el Mal Tiempo.' : 'Hecho.', 4200);
   di('ha jugado ' + CARTA_AV[tipo].ic + ' ' + CARTA_AV[tipo].n);
+  /* ===== DOS RUTAS GRATIS: HAY QUE ENCENDER EL MODO =====
+     Pam: "no me deja poner las dos rutas cuando recibo la carta de rutas".
+     El descuento del precio ya estaba (esGratis), pero sin activar el modo
+     'camino' NO salian los circulos donde tocar: la carta se quedaba en nada.
+     OJO: NO vale llamar a ponModo('camino'), porque ponModo ALTERNA
+     (modo = (modo === m) ? null : m). Si ya tenias el modo ruta puesto, te lo
+     APAGABA justo al jugar la carta. Aqui se ENCIENDE siempre, sin alternar. */
+  if (tipo === 'rutas'){
+    modo = 'camino';
+    ['bCamino','bBase','bHub'].forEach(b => { const el = $(b); if (el) el.classList.remove('on'); });
+    if ($('bCamino')) $('bCamino').classList.add('on');
+    if ($('info')) $('info').innerHTML = '<b>' + NOMBRE.camino +
+      '</b> — toca el tablero donde quieras ponerla<br>te salen <b>GRATIS</b>';
+  }
   revisaLogros(await leerSala(salaCod));
 }
 
