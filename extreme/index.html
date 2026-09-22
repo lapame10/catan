@@ -1844,11 +1844,22 @@ async function tirarDados(){
     });
     const deben = Object.keys(desc);
     /* el Mal Tiempo solo se puede mover cuando todos hayan entregado */
+    /* ===== EL MAL TIEMPO NO SE QUEDA BLOQUEADO =====
+       Pam: "me parece que el mal clima aun no se pude mover".
+       Antes, si alguien tenia que descartar, mueveElClima se ponia a null y el
+       Mal Tiempo NO se podia mover hasta que TODOS hubieran entregado. Y como
+       el recuadro del descarte no se veia bien en el movil, no se podia
+       entregar y el Mal Tiempo se quedaba bloqueado para siempre.
+       Ahora el Mal Tiempo se puede mover YA (lo hace el que ha tirado), y el
+       descarte va EN PARALELO. Ademas se apunta quien tiro, para devolverle el
+       turno bien. */
     await update(ref(db,'extreme/salas/'+salaCod), {
       dados: { d1, d2, total },
       descarte: desc,
       descarteHecho: {},
-      mueveElClima: deben.length ? null : yo.id
+      tirador7: yo.id,
+      tirador7Ts: Date.now(),
+      mueveElClima: yo.id
     });
     aviso('🌩️ 7 — ¡MAL TIEMPO!',
       deben.length
@@ -2208,15 +2219,40 @@ async function marcDescarte(s, rec){
   const hecho = Object.assign({}, s.descarteHecho || {});
   hecho[yo.id] = true;
   const upd = { descarteHecho: hecho };
-  const todos = Object.keys(s.descarte || {});
-  if (todos.every(id => hecho[id])){
-    /* el que tiro los dados es quien mueve el Mal Tiempo */
-    upd.mueveElClima = s.tirador7 || s.turno;
-  }
+  /* el descarte NO toca mueveElClima: el Mal Tiempo ya se puede mover */
   await update(ref(db,'extreme/salas/'+salaCod), upd);
 }
 
 /* los bots descartan solos, o el juego se queda esperando para siempre */
+/* ===== RED DE SEGURIDAD DEL DESCARTE =====
+   Si alguien se queda sin entregar (porque cierra la app, o porque no ve el
+   recuadro), la partida no se puede quedar con el descarte abierto para
+   siempre. Pasados 2 minutos, lo resuelvo solo: devuelvo la mitad de lo que mas
+   tenga, que es lo que haria cualquiera. */
+async function rescataDescarte(s){
+  if (!s || !s.descarte) return;
+  const pendientes = Object.keys(s.descarte).filter(id => !((s.descarteHecho || {})[id]));
+  if (!pendientes.length) return;
+  const arranque = s.tirador7Ts || 0;
+  if (!arranque || (Date.now() - arranque) < 120000) return;
+  for (const id of pendientes){
+    const rec = JSON.parse(JSON.stringify(s.recursos || {}));
+    rec[id] = rec[id] || {};
+    let falta = s.descarte[id];
+    const orden = Object.entries(rec[id]).sort((a, b) => b[1] - a[1]);
+    for (const [k, v] of orden){
+      if (falta <= 0) break;
+      const quit = Math.min(v, falta);
+      rec[id][k] = v - quit;
+      falta -= quit;
+    }
+    const hecho = Object.assign({}, s.descarteHecho || {});
+    hecho[id] = true;
+    await update(ref(db,'extreme/salas/'+salaCod), { recursos: rec, descarteHecho: hecho });
+    s.descarteHecho = hecho;
+  }
+}
+
 async function botsDescartan(s){
   if (!s || !s.descarte) return;
   for (const id of Object.keys(s.descarte)){
@@ -2237,9 +2273,8 @@ async function botsDescartan(s){
     }
     const hecho = Object.assign({}, s.descarteHecho || {});
     hecho[id] = true;
+    /* el descarte NO toca mueveElClima: el Mal Tiempo ya se puede mover */
     const upd = { recursos: rec, descarteHecho: hecho };
-    const todos = Object.keys(s.descarte);
-    if (todos.every(x => hecho[x])) upd.mueveElClima = s.tirador7 || s.turno;
     await update(ref(db,'extreme/salas/'+salaCod), upd);
     s.descarteHecho = hecho;
   }
@@ -2686,6 +2721,7 @@ function pintaPartida(s){
   pintaOfertas(s);
   leeBuzon(s);
   avisaRechazos(s);
+  rescataDescarte(s);
   pintaEligeRec(s);
   pintaDescarte(s);
   pintaRobaDe(s);
