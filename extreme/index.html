@@ -409,6 +409,7 @@
   .oferta .mia{font-size:11px;color:#c9a558;text-align:center}
   /* ===== TUS CARTAS DE AVENTURA ===== */
   .misCartas{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin:9px auto 0;max-width:344px}
+  .cartaDev.apagada{opacity:.38;filter:grayscale(.75)}
   .cartaDev{display:flex;flex-direction:column;align-items:center;gap:3px;width:74px;
     background:rgba(26,16,9,.85);border-radius:9px;padding:6px 4px;cursor:pointer;
     box-shadow:0 0 0 1.5px rgba(201,165,88,.5);font-size:9.5px;color:#f0e2c4;text-align:center;line-height:1.25}
@@ -1657,16 +1658,18 @@ function pintaBarra(s){
     : (mio ? 'PASAR EL TURNO' : 'ESPERANDO…');
   $('bDados').disabled = !mio || !!s.dados;
   $('bDados').textContent = !mio ? '🎲 ESPERANDO…' : (s.dados ? '🎲 SACASTE ' + s.dados.total : '🎲 TIRAR LOS DADOS');
-  ['bCamino','bBase','bHub'].forEach(b => $(b).disabled = !mio);
-  /* ===== EL COMERCIO NECESITA HABER TIRADO LOS DADOS =====
-     Pam: "no se debe de poder comerciar antes de tirar los dados".
-     Se puede CONSTRUIR antes de tirar, pero comerciar no: primero se tira. */
-  $('bComercio').disabled = !mio || !s.dados;
+  /* ===== ANTES DE TIRAR SOLO SE PUEDE EL HELICOPTERO =====
+     Pam: "antes de tirar solo puedes usar la carta de el helicoptero, todo lo
+     demas es hasta despues de tirar".
+     Asi que construir, comerciar y comprar cartas quedan bloqueados hasta que
+     haya dados. El unico que se salta la regla es el RESCATE EN HELI, porque
+     tiene sentido lanzarlo antes de saber que te toca. */
+  ['bCamino','bBase','bHub','bComercio'].forEach(b => $(b).disabled = !mio || !s.dados);
 
   /* ===== LA CARTA DE AVENTURA ===== */
   const mazoN = (s.avMazo || []).length;
   const mis = (s.recursos && s.recursos[yo.id]) || {};
-  $('bCarta').disabled = !mio || mazoN === 0;
+  $('bCarta').disabled = !mio || mazoN === 0 || !s.dados;
   ponTextoBtn('bCarta', !mio ? '🃏 CARTA DE AVENTURA'
     : (mazoN ? '🃏 COMPRAR CARTA (' + textoCoste(COSTE_CARTA) + ') · quedan ' + mazoN
              : '🃏 SE ACABARON LAS CARTAS'));
@@ -1676,9 +1679,13 @@ function pintaBarra(s){
   const toca = (s.mueveElClima === yo.id);
   $('misCartas').innerHTML = mias.map((tp, i) => {
     const c = CARTA_AV[tp] || { n: tp, ic: '🃏', d: '' };
-    return `<div class="cartaDev${toca ? ' jugando' : ''}" data-i="${i}" title="${c.d}">
+    /* Pam: "antes de tirar solo puedes usar la carta de el helicoptero".
+       Asi que las demas salen APAGADAS y con el motivo, para que no las toques
+       en balde. */
+    const apagada = !s.dados && tp !== 'heli';
+    return `<div class="cartaDev${toca ? ' jugando' : ''}${apagada ? ' apagada' : ''}" data-i="${i}" title="${c.d}">
       <span class="ic">${c.ic}</span><b>${c.n}</b>
-      <span>${toca ? 'muévelo primero' : 'toca para jugarla'}</span></div>`;
+      <span>${apagada ? 'después de tirar' : (toca ? 'muévelo primero' : 'toca para jugarla')}</span></div>`;
   }).join('');
   $('misCartas').querySelectorAll('.cartaDev').forEach(el =>
     el.onclick = () => juegaCarta(+el.dataset.i));
@@ -1906,6 +1913,10 @@ $('bDados').onclick = tirarDados;
 async function comprarCarta(){
   const s = await leerSala(salaCod);
   if (!s || s.turno !== yo.id) return false;
+  if (!s.dados){
+    aviso('Primero los dados', 'Tira los dados antes de comprar una carta.', 3600);
+    return false;
+  }
   const mis = (s.recursos || {})[yo.id] || {};
   if (!alcanza(mis, COSTE_CARTA)){
     aviso('No te llega', 'Una Carta de Aventura cuesta <b>' + textoCoste(COSTE_CARTA) + '</b>'); return false;
@@ -1934,6 +1945,13 @@ $('bCarta').onclick = comprarCarta;
 async function juegaCarta(i){
   const s = await leerSala(salaCod);
   if (!s || s.turno !== yo.id) return;
+  /* ===== ANTES DE TIRAR, SOLO EL HELICOPTERO =====
+     Pam: "antes de tirar solo puedes usar la carta de el helicoptero". */
+  const mias0 = (s.cartas || {})[yo.id] || [];
+  if (!s.dados && mias0[i] !== 'heli'){
+    aviso('Primero los dados', 'Antes de tirar solo puedes usar <b>🚁 Rescate en heli</b>.<br>Las demás cartas, después de tirar.', 4600);
+    return;
+  }
   /* ===== REGLA: la comprada ESTE turno no se puede jugar todavia ===== */
   if ((s.compradaAhora || {})[yo.id]){
     aviso('Todavía no', 'La carta se compra en un turno y <b>se juega en el siguiente</b>.<br>Pasa el turno y ya podrás usarla.', 4600);
@@ -2370,6 +2388,14 @@ $('bHub').onclick    = () => ponModo('hub');
 async function coloca(tipo, clave, hexIdx){
   const s = await leerSala(salaCod);
   if (!s || s.turno !== yo.id) return;
+  /* ===== ANTES DE TIRAR NO SE CONSTRUYE =====
+     Pam: "antes de tirar solo puedes usar la carta de el helicoptero, todo lo
+     demas es hasta despues de tirar". (Mover el Mal Tiempo si se puede: eso no
+     es construir.) */
+  if (s.fase === 'juego' && !s.dados && tipo !== 'clima'){
+    aviso('Primero los dados', 'Tira los dados antes de construir.', 3600);
+    return;
+  }
 
   /* si toca llevar el Mal Tiempo, el toque es sobre un TERRENO */
   if (tipo === 'clima'){ await mueveClimaA(hexIdx); return; }
