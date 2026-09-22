@@ -1083,7 +1083,16 @@ async function mueveElBot(s){
 
     /* ===== 1) SI TOCA LLEVAR EL MAL TIEMPO, LO LLEVO DONDE MAS DAÑO HAGA ===== */
     if (s2.mueveElClima === botId){
-      let mejor = null, mejorN = -1;
+      /* ===== EL BOT NO DEBE DEVOLVER EL MAL TIEMPO AL CENTRO =====
+         Pam: "el mal tiempo se regresa siempre al centro despues de jugarlo,
+         no se esta quedando".
+         El fallo estaba en que mejorN empezaba en -1, asi que el PRIMER
+         hexagono ganaba aunque su daño fuera 0 (0 > -1). Y el primer hexagono
+         del tablero es el del centro. Resultado: cada vez que a un bot le
+         tocaba moverlo, lo devolvia al centro.
+         Ahora: si ningun sitio le quita recursos a nadie, elige uno AL AZAR
+         que no sea donde ya esta. Asi se queda donde lo puso el de verdad. */
+      let mejor = null, mejorN = 0;
       (s2.hexes || []).forEach((h, idx) => {
         if (idx === s2.clima) return;
         let n = 0;
@@ -1092,6 +1101,12 @@ async function mueveElBot(s){
         });
         if (n > mejorN){ mejorN = n; mejor = idx; }
       });
+      if (mejor == null){
+        /* no le quita nada a nadie: a un sitio cualquiera, pero NUNCA al que
+           ya esta (y desde luego no al centro por defecto) */
+        const libres = (s2.hexes || []).map((h, i) => i).filter(i => i !== s2.clima);
+        if (libres.length) mejor = libres[Math.floor(Math.random() * libres.length)];
+      }
       if (mejor != null) await mueveClimaA(mejor);
       else await pasarTurno();
       return;
