@@ -1621,8 +1621,18 @@ function pintaBarra(s){
   }
 
   $('turnoTxt').textContent = t ? (mio ? 'TU TURNO' : 'Turno de ' + t.nombre) : '';
-  $('bPasar').disabled = !mio;
-  $('bPasar').textContent = mio ? 'PASAR EL TURNO' : 'ESPERANDO…';
+  /* ===== REGLA: NO SE PASA EL TURNO CON UN COMERCIO ABIERTO =====
+     Pam: "tampoco se deberia poder pasar el turno si el comercio sigue
+     haciendose, entonces deberia quedarse como el recuadro para que veas si
+     aun lo estan pensando, hasta que todos digan que no o si alguien dice que
+     si ahi que se quite el recuadro".
+     Mientras tengas una oferta TUYA viva, no puedes pasar: el recuadro se queda
+     y ves que aun la estan pensando. En cuanto alguien acepta (o todos
+     rechazan) la oferta desaparece y ya puedes pasar. */
+  const miOfertaViva = Object.values(s.ofertas || {}).some(o => o && o.de === yo.id);
+  $('bPasar').disabled = !mio || miOfertaViva;
+  $('bPasar').textContent = miOfertaViva ? '⌛ ESPERANDO RESPUESTA…'
+    : (mio ? 'PASAR EL TURNO' : 'ESPERANDO…');
   $('bDados').disabled = !mio || !!s.dados;
   $('bDados').textContent = !mio ? '🎲 ESPERANDO…' : (s.dados ? '🎲 SACASTE ' + s.dados.total : '🎲 TIRAR LOS DADOS');
   ['bCamino','bBase','bHub','bComercio'].forEach(b => $(b).disabled = !mio);
@@ -1716,10 +1726,27 @@ function pintaCostes(s){
   /* solo puedes construir si la partida ya empezo y es TU turno */
   const mio = (s.fase === 'juego') && (s.turno === yo.id);
   const hayMazo = (s.avMazo || []).length > 0;
-  pintaCoste('costeCamino', 'bCamino', COSTES.camino, s, mis, mio);
+  /* ===== LA CARTA DE LAS DOS RUTAS GRATIS TAMBIEN CUENTA AQUI =====
+     Pam: "lo que pasa con los caminos de la carta es que no te deja ponerlo a
+     menos que compres uno".
+     Y tenia razon: esta funcion solo miraba si tenias las cartas del coste
+     (1 flight + 1 ride). Si tenias la carta de rutas gratis pero NO los
+     recursos, el boton RUTA se DESHABILITABA: no podias ni activar el modo, no
+     salian los puntos, y parecia que la carta no servia de nada. Habia que
+     comprar una ruta normal para que el boton se encendiera.
+     Ahora, si te quedan rutas gratis, el coste va vacio -> el boton se activa
+     y no pide nada. */
+  const gratisRuta = ((s.gratis && s.gratis[yo.id]) || 0) > 0;
+  pintaCoste('costeCamino', 'bCamino', gratisRuta ? {} : COSTES.camino, s, mis, mio || gratisRuta);
   pintaCoste('costeBase',   'bBase',   COSTES.base,   s, mis, mio);
   pintaCoste('costeHub',    'bHub',    COSTES.hub,    s, mis, mio);
   pintaCoste('costeCarta',  'bCarta',  COSTE_CARTA,   s, mis, mio && hayMazo);
+  /* y si te quedan rutas gratis, que se VEA: el boton pone GRATIS */
+  const cc = $('costeCamino');
+  if (cc) cc.innerHTML = gratisRuta
+    ? '<span class="cB" style="color:#5df08a">GRATIS · ' +
+      (((s.gratis || {})[yo.id]) || 0) + ' de la carta</span>'
+    : cc.innerHTML;
 }
 
 function pintaRecursos(s){
@@ -1853,7 +1880,13 @@ async function comprarCarta(){
   cartas[yo.id] = (cartas[yo.id] || []).concat([tipo]);
   const rec = Object.assign({}, s.recursos || {});
   rec[yo.id] = cobra(mis, COSTE_CARTA);
-  await update(ref(db,'extreme/salas/'+salaCod), { avMazo: mazo, cartas, recursos: rec });
+  /* ===== REGLA: LA CARTA SE COMPRA EN UN TURNO Y SE JUEGA EN EL SIGUIENTE =====
+     Pam: "en las reglas, no se debe poder usar la carta de aventura el mismo
+     turno que se compra". Asi que se apunta que la has comprado ahora, y
+     juegaCarta no te la deja usar hasta tu turno siguiente. */
+  const ahora = Object.assign({}, s.compradaAhora || {});
+  ahora[yo.id] = true;
+  await update(ref(db,'extreme/salas/'+salaCod), { avMazo: mazo, cartas, recursos: rec, compradaAhora: ahora });
   aviso(CARTA_AV[tipo].ic + ' ' + CARTA_AV[tipo].n, 'Te ha tocado: ' + CARTA_AV[tipo].d, 4200);
   di('ha comprado una Carta de Aventura' + (s.avMazo ? ' (quedan ' + (s.avMazo.length - 1) + ')' : ''));
   revisaLogros(await leerSala(salaCod));
@@ -1864,6 +1897,11 @@ $('bCarta').onclick = comprarCarta;
 async function juegaCarta(i){
   const s = await leerSala(salaCod);
   if (!s || s.turno !== yo.id) return;
+  /* ===== REGLA: la comprada ESTE turno no se puede jugar todavia ===== */
+  if ((s.compradaAhora || {})[yo.id]){
+    aviso('Todavía no', 'La carta se compra en un turno y <b>se juega en el siguiente</b>.<br>Pasa el turno y ya podrás usarla.', 4600);
+    return;
+  }
   const mias = ((s.cartas || {})[yo.id] || []).slice();
   const tipo = mias[i];
   if (!tipo) return;
@@ -3411,7 +3449,10 @@ async function pasarTurno(){
   const ids = Object.keys(s.jugadores || {});
   const sig = ids[(ids.indexOf(yo.id) + 1) % ids.length];
   ponModo(null);
-  await update(ref(db,'extreme/salas/'+salaCod), { turno: sig, dados: null });
+  /* al pasar el turno, la carta comprada ya se puede jugar */
+  const ah = Object.assign({}, s.compradaAhora || {});
+  delete ah[yo.id];
+  await update(ref(db,'extreme/salas/'+salaCod), { turno: sig, dados: null, compradaAhora: ah });
 }
 $('bPasar').onclick = pasarTurno;
 
