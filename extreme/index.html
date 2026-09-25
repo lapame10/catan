@@ -3005,18 +3005,56 @@ function pintaPartida(s){
       let p;
       try { p = pt.matrixTransform(svg.getScreenCTM().inverse()); } catch(err){ p = null; }
       if (p){
+        const distancia = (el) => {
+          if (el.tagName === 'line'){
+            return distPuntoSegmento(p.x, p.y, +el.getAttribute('x1'), +el.getAttribute('y1'),
+                                                 +el.getAttribute('x2'), +el.getAttribute('y2'));
+          }
+          return Math.hypot(p.x - +el.getAttribute('cx'), p.y - +el.getAttribute('cy'));
+        };
+
+        /* ===== MOVER EL MAL TIEMPO VA PRIMERO, Y CON RADIO DE HEXAGONO =====
+           Pam: "cuando sale 7 el mal tiempo no lo puedo mover".
+           El limite de 34 px vale para cruces y aristas, que son puntos y lineas
+           finas. Pero para el clima hay que tocar el CENTRO de un hexagono, y el
+           hexagono tiene 46 de radio: tocando cerca del borde, la distancia al
+           centro pasa de 34 y la app se quedaba como si no hubieras tocado nada.
+           Sin aviso y sin error, que es lo peor: parece que el juego esta roto.
+
+           Ahora, si estas moviendo el clima, se mira SOLO entre los puntos de
+           clima, y vale cualquier toque DENTRO del hexagono. Y tienen prioridad
+           sobre los cruces: si mueves el clima, no estas construyendo. */
+        const deClima = todos.filter(el => el.dataset.t === 'clima');
+        if (deClima.length){
+          let mejor = null, mejorD = Infinity;
+          deClima.forEach(el => {
+            const d = distancia(el);
+            if (d < mejorD){ mejorD = d; mejor = el; }
+          });
+          /* el radio del hexagono, y un poco mas de margen por si el dedo cae
+             justo fuera de la linea */
+          if (mejor && mejorD <= R * 1.05){
+            coloca(mejor.dataset.t, mejor.dataset.k, +mejor.dataset.h);
+            return;
+          }
+        }
+
         let mejor = null, mejorD = Infinity;
         todos.forEach(el => {
-          let d;
-          if (el.tagName === 'line'){
-            d = distPuntoSegmento(p.x, p.y, +el.getAttribute('x1'), +el.getAttribute('y1'),
-                                                +el.getAttribute('x2'), +el.getAttribute('y2'));
-          } else {
-            d = Math.hypot(p.x - +el.getAttribute('cx'), p.y - +el.getAttribute('cy'));
-          }
+          const d = distancia(el);
           if (d < mejorD){ mejorD = d; mejor = el; }
         });
-        if (mejor && mejorD <= 34){ coloca(mejor.dataset.t, mejor.dataset.k, +mejor.dataset.h); return; }
+        if (mejor && mejorD <= 34){
+          coloca(mejor.dataset.t, mejor.dataset.k, +mejor.dataset.h);
+          return;
+        }
+
+        /* ===== Y SI NO SE COGIO NADA, SE DICE =====
+           Antes esto era un silencio. Si estas moviendo el clima y tocas donde
+           no hay nada, la persona se queda pensando que el juego no responde. */
+        if (deClima.length){
+          aviso('Toca un terreno', 'Pulsa en el centro de cualquiera de los terrenos marcados.', 3200);
+        }
       }
     }
 
