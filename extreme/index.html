@@ -2092,8 +2092,14 @@ async function robaA(victima, idx){
     rec[yo.id][rk] = (rec[yo.id][rk] || 0) + 1;
     robada = rk;
   }
+  /* ===== AQUI FALTABA 'clima: idx' =====
+     Pam: "dice que se mueve, pero la nubecita se queda en el centro".
+     Exacto: esta linea limpiaba el permiso y movia los recursos, pero NUNCA
+     decia DONDE queda el Mal Tiempo. Asi que el estado seguia apuntando al
+     hexagono viejo, la nube no se movia del sitio, y como el aviso de abajo ya
+     decia "Mal Tiempo movido", la app contaba algo que no habia pasado. */
   await update(ref(db,'extreme/salas/'+salaCod),
-    { mueveElClima: null, robaDe: null, recursos: rec });
+    { clima: idx, mueveElClima: null, robaDe: null, recursos: rec });
   const nom = ((s.jugadores || {})[victima] || {}).nombre || '?';
   aviso('🌩️ Mal Tiempo movido',
         'Ahora está en <b>' + (TERR[((s.hexes || {})[idx] || {}).rec] || '') + '</b>.<br>' +
