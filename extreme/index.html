@@ -2086,18 +2086,40 @@ async function mueveClimaA(idx){
      cada uno. En el Catan de verdad robas UNA carta a UN jugador, y el que
      mueve el Mal Tiempo ELIGE a cual. Asi que ahora: si hay uno solo, se roba
      directo; si hay dos o mas, sale un panel para elegir. */
-  const candidatos = Object.keys(s.jugadores || {}).filter(id => {
+  /* ===== QUIEN ESTA AHI, Y QUIEN TIENE ALGO QUE ROBAR =====
+     Pam: "cuando muevo el mal clima, aunque haya gente ahi, me dice que no hay
+     nadie".
+
+     El fallo era juntar dos preguntas distintas en un solo filtro:
+
+       - quien tiene una pieza en ese terreno   <- a quien le puedes robar
+       - quien tiene cartas                     <- a quien le puedes robar ALGO
+
+     Si hay alguien con pieza pero sin cartas, el filtro entero daba cero y el
+     aviso decia "No habia nadie alli". Mentira: habia alguien, lo que no tenia
+     eran cartas. Pam veia las piezas en el tablero y la app le decia que no
+     habia nadie.
+
+     Ahora se separan: los que ESTAN, y los que ADEMAS tienen algo que dar. */
+  const estan = Object.keys(s.jugadores || {}).filter(id => {
     if (id === yo.id) return false;
-    if (!tocaHex((s.piezas || {})[id], idx)) return false;
+    return tocaHex((s.piezas || {})[id], idx) > 0;
+  });
+  const candidatos = estan.filter(id => {
     const r = (s.recursos || {})[id] || {};
     return Object.values(r).reduce((a, b) => a + b, 0) > 0;
   });
 
+  const nombreDe = (id) => ((s.jugadores || {})[id] || {}).nombre || '?';
+
   if (candidatos.length === 0){
     await update(ref(db,'extreme/salas/'+salaCod), { clima: idx, mueveElClima: null });
-    aviso('🌩️ Mal Tiempo movido',
-          (s.hexes && s.hexes[idx] ? 'Ahora está en <b>' + (TERR[(s.hexes[idx] || {}).rec] || '') + '</b>.' : '') +
-          '<br>No había nadie allí.', 4600);
+    const donde = (s.hexes && s.hexes[idx]) ? 'Ahora está en <b>' + (TERR[(s.hexes[idx] || {}).rec] || '') + '</b>.' : '';
+    /* se dice la verdad: si hay gente pero no tiene cartas, se dice eso */
+    const porque = estan.length
+      ? 'Está ahí ' + estan.map(nombreDe).join(' y ') + ', pero no tiene cartas que quitarle.'
+      : 'No había nadie allí.';
+    aviso('🌩️ Mal Tiempo movido', donde + '<br>' + porque, 4600);
     return;
   }
   /* ===== SI SOY UN BOT, ELIJO SOLO =====
