@@ -2519,7 +2519,12 @@ async function coloca(tipo, clave, hexIdx){
         [...(p.base||[]), ...(p.hub||[])].some(x => x.k === clave));
       if (hayAlgo){ aviso('Ahí ya hay una pieza',''); return; }
       /* en la ida no hace falta tocar ruta; en la vuelta, el Basecamp ya no tiene que tocar nada */
-      piezas[yo.id].base.push({ k: clave, hex: hexIdx });
+      piezas[yo.id].base.push({
+        k: clave, hex: hexIdx,
+        /* los hexagonos que toca este cruce, grabados AHORA, que es cuando las
+           coordenadas son las buenas para esta pantalla */
+        hexes: hexesDelCruce(clave),
+      });
     } else {
       /* la Ruta tiene que salir de tu Basecamp recien puesto */
       /* La Ruta puede salir de CUALQUIERA de tus Basecamps, o seguir
@@ -2629,12 +2634,13 @@ async function coloca(tipo, clave, hexIdx){
     if (!toca && misPuntos2.length){
       aviso('Lejos', 'Un Basecamp tiene que tocar una de tus rutas o uno de tus Basecamps.'); return;
     }
-    lista.push({ k: clave, hex: hexIdx });
+    lista.push({ k: clave, hex: hexIdx, hexes: hexesDelCruce(clave) });
   } else if (tipo === 'hub'){
     const mio = [...(piezas[yo.id].base||[]), ...(piezas[yo.id].hub||[])].find(x => x.k === clave);
     if (!mio){ aviso('No es tuyo', 'Solo puedes subir a Hub un Basecamp tuyo.'); return; }
     piezas[yo.id].base = piezas[yo.id].base.filter(x => x.k !== clave);
-    piezas[yo.id].hub.push({ k: clave, hex: mio.hex });
+    piezas[yo.id].hub.push({ k: clave, hex: mio.hex,
+      hexes: (Array.isArray(mio.hexes) && mio.hexes.length) ? mio.hexes : hexesDelCruce(clave) });
   } else {
     lista.push({ k: clave, hex: hexIdx, v: clave.split('|') });
   }
@@ -3687,8 +3693,38 @@ function hexesDelCruce(k){
    piezas alrededor, suma las dos) */
 function tocaHex(pz, i){
   let n = 0;
-  ((pz && pz.base) || []).forEach(b => { if (hexesDelCruce(b.k).includes(i)) n += 1; });
-  ((pz && pz.hub)  || []).forEach(b => { if (hexesDelCruce(b.k).includes(i)) n += 2; });
+  /* ===== SE USAN LOS HEXAGONOS GRABADOS =====
+     Pam: "cuando muevo el mal clima, aunque haya gente ahi, me dice que no hay
+     nadie". Con captura: en el 11 estaba Maria.
+
+     El cruce se guarda por coordenadas absolutas ("v#92.0#119.5"), y para saber
+     que hexagonos toca se recalcula la distancia a los centros. Pero los
+     centros se calculan con CX = ancho/2, o sea QUE DEPENDE DEL ANCHO DE LA
+     PANTALLA. Las mismas coordenadas caen en sitios distintos segun el movil, y
+     a partir de cierta anchura varios cruces dejan de tocar ningun hexagono.
+     Entonces tocaHex da 0 y la app dice "no habia nadie" aunque las piezas se
+     vean perfectamente en el tablero.
+
+     Comprobado: con CX=200 todos los cruces tocan hexagono; con CX=230 tres no
+     tocan ninguno; con CX=260 cuatro; con CX=350 cinco. Es intermitente y
+     depende del aparato, que es lo peor de todo.
+
+     Ahora, al colocar la pieza se graban sus hexagonos, y se usa esa lista. Si
+     no esta (piezas viejas o del bot), se calcula como antes. */
+  const suyos = (b) => {
+    if (!b) return [];
+    if (Array.isArray(b.hexes) && b.hexes.length) return b.hexes;   /* lo bueno */
+    /* Y si no estan grabados, se UNE lo que diga el calculo con el hexagono
+       que se grabo al colocar. Antes eran alternativas ("si el calculo falla,
+       usa el otro"), y eso estaba mal: si el calculo acertaba OTRO hexagono
+       distinto, se perdia el guardado. Con la union, el guardado cuenta
+       siempre. */
+    const calc = hexesDelCruce(b.k);
+    const guardado = (b.hex != null) ? [b.hex] : [];
+    return [...new Set([...calc, ...guardado])];
+  };
+  ((pz && pz.base) || []).forEach(b => { if (suyos(b).includes(i)) n += 1; });
+  ((pz && pz.hub)  || []).forEach(b => { if (suyos(b).includes(i)) n += 2; });
   return n;
 }
 function calculaPosiciones(){
