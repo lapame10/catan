@@ -1677,15 +1677,43 @@ function pintaBarra(s){
   /* ===== TUS CARTAS: toca una para jugarla ===== */
   const mias = (s.cartas || {})[yo.id] || [];
   const toca = (s.mueveElClima === yo.id);
+  /* ===== CUALES ACABAS DE COMPRAR =====
+     Pam: "si compro una carta de aventura que no puedo usar ese turno, tampoco
+     me deja usar las otras que ya tenia antes".
+
+     El bloqueo al jugarla ya esta arreglado: solo se bloquea la recien comprada.
+     Pero el DIBUJO tambien hay que arreglarlo, o la carta se ve normal y al
+     tocarla te dice "Todavia no" — lo mismo de antes pero peor, porque promete
+     algo que luego no cumple.
+
+     Aqui se marca apagada SOLO la recien comprada, y se dice por que. Las viejas
+     del mismo tipo se quedan encendidas, porque esas si se pueden jugar. */
+  const deAhora = ((s.compradaAhora || {})[yo.id] || {});
+  const libres = {};   /* de cada tipo, cuantas son de antes */
+  {
+    const cuenta = {};
+    mias.forEach(tp => cuenta[tp] = (cuenta[tp] || 0) + 1);
+    Object.keys(cuenta).forEach(tp => {
+      const bloq = (typeof deAhora === 'object' && deAhora !== null) ? (deAhora[tp] || 0) : cuenta[tp];
+      libres[tp] = cuenta[tp] - bloq;
+    });
+  }
+  const puestas = {};
   $('misCartas').innerHTML = mias.map((tp, i) => {
     const c = CARTA_AV[tp] || { n: tp, ic: '🃏', d: '' };
     /* Pam: "antes de tirar solo puedes usar la carta de el helicoptero".
        Asi que las demas salen APAGADAS y con el motivo, para que no las toques
        en balde. */
-    const apagada = !s.dados && tp !== 'heli';
+    const apagadaPorDados = !s.dados && tp !== 'heli';
+    puestas[tp] = puestas[tp] || 0;
+    const esNueva = puestas[tp]++ >= (libres[tp] || 0);
+    const apagadaPorCompra = esNueva && !apagadaPorDados;
+    const apagada = apagadaPorDados || apagadaPorCompra;
+    const motivo = apagadaPorDados ? 'después de tirar'
+      : (apagadaPorCompra ? 'comprada ahora' : (toca ? 'muévelo primero' : 'toca para jugarla'));
     return `<div class="cartaDev${toca ? ' jugando' : ''}${apagada ? ' apagada' : ''}" data-i="${i}" title="${c.d}">
       <span class="ic">${c.ic}</span><b>${c.n}</b>
-      <span>${apagada ? 'después de tirar' : (toca ? 'muévelo primero' : 'toca para jugarla')}</span></div>`;
+      <span>${motivo}</span></div>`;
   }).join('');
   $('misCartas').querySelectorAll('.cartaDev').forEach(el =>
     el.onclick = () => juegaCarta(+el.dataset.i));
@@ -1941,7 +1969,11 @@ async function comprarCarta(){
      turno que se compra". Asi que se apunta que la has comprado ahora, y
      juegaCarta no te la deja usar hasta tu turno siguiente. */
   const ahora = Object.assign({}, s.compradaAhora || {});
-  ahora[yo.id] = true;
+  /* Se apunta CUANTAS de cada tipo se compraron este turno, no solo que
+     compraste. Antes era 'ahora[yo.id] = true' y ese true valia para cualquier
+     carta tuya: comprabas una y se te apagaban TODAS, incluidas las de antes. */
+  ahora[yo.id] = Object.assign({}, ahora[yo.id] || {});
+  ahora[yo.id][tipo] = (ahora[yo.id][tipo] || 0) + 1;
   await update(ref(db,'extreme/salas/'+salaCod), { avMazo: mazo, cartas, recursos: rec, compradaAhora: ahora });
   aviso(CARTA_AV[tipo].ic + ' ' + CARTA_AV[tipo].n, 'Te ha tocado: ' + CARTA_AV[tipo].d, 4200);
   di('ha comprado una Carta de Aventura' + (s.avMazo ? ' (quedan ' + (s.avMazo.length - 1) + ')' : ''));
@@ -1960,10 +1992,26 @@ async function juegaCarta(i){
     aviso('Primero los dados', 'Antes de tirar solo puedes usar <b>🚁 Rescate en heli</b>.<br>Las demás cartas, después de tirar.', 4600);
     return;
   }
-  /* ===== REGLA: la comprada ESTE turno no se puede jugar todavia ===== */
-  if ((s.compradaAhora || {})[yo.id]){
-    aviso('Todavía no', 'La carta se compra en un turno y <b>se juega en el siguiente</b>.<br>Pasa el turno y ya podrás usarla.', 4600);
-    return;
+  /* ===== REGLA: la comprada ESTE turno no se puede jugar todavía =====
+     Pero SOLO esa. Las que ya tenías de antes, sí.
+
+     Pam: "si compro una carta de aventura que no puedo usar ese turno, tampoco
+     me deja usar las otras que ya tenía antes".
+
+     Antes esto era 'if (compradaAhora[yo.id])' y ese true valía para cualquier
+     carta tuya: comprabas una y se te apagaban todas. Aquí se mira cuántas de
+     ESTE tipo compraste ahora: si de este tipo tienes más que las compradas,
+     al menos una es vieja y se puede jugar. */
+  {
+    const deAhora = ((s.compradaAhora || {})[yo.id] || {});
+    const tipoPedido = ((s.cartas || {})[yo.id] || [])[i];
+    const compradasDeEsteTipo = deAhora[tipoPedido] || 0;
+    const tengoDeEsteTipo = ((s.cartas || {})[yo.id] || []).filter(x => x === tipoPedido).length;
+    if (compradasDeEsteTipo > 0 && tengoDeEsteTipo <= compradasDeEsteTipo){
+      aviso('Todavía no', 'Esa la acabas de comprar. Se compra en un turno y <b>se juega en el siguiente</b>.<br>' +
+        (tengoDeEsteTipo > 1 ? 'Ojo: tienes ' + tengoDeEsteTipo + ' iguales y son todas de este turno.' : 'Pasa el turno y ya podrás usarla.'), 4600);
+      return;
+    }
   }
   const mias = ((s.cartas || {})[yo.id] || []).slice();
   const tipo = mias[i];
